@@ -21,12 +21,16 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
     'core',
+    'api.apps.ApiConfig',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -60,10 +64,10 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB') or os.environ.get('POSTGRES_DB_NAME', 'burnoutzero'),
-        'USER': os.environ.get('POSTGRES_USER') or os.environ.get('POSTGRES_DB_USER', 'burnoutzero'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD') or os.environ.get('POSTGRES_DB_PASSWORD', 'burnoutzero'),
-        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+        'NAME': os.environ.get('POSTGRES_DB') or os.environ.get('POSTGRES_DB_NAME', 'burnout_db'),
+        'USER': os.environ.get('POSTGRES_USER') or os.environ.get('POSTGRES_DB_USER', 'burnout_user'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD') or os.environ.get('POSTGRES_DB_PASSWORD', 'burnout_pass'),
+        'HOST': os.environ.get('POSTGRES_HOST', 'postgres'),
         'PORT': os.environ.get('POSTGRES_PORT') or os.environ.get('POSTGRES_DB_PORT', '5432'),
     }
 }
@@ -104,3 +108,13 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+
+AUTH_USER_MODEL = 'api.User'
