@@ -1,0 +1,13 @@
+[run]
+source = .
+omit =
+    .venv/*
+    */migrations/*
+    manage.py
+    backend/wsgi.py
+    backend/asgi.py
+    */__pycache__/*
+
+[report]
+show_missing = true
+skip_covered = false
