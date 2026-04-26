@@ -1,7 +1,12 @@
 from rest_framework import generics, viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import User, Avaliacao, Acompanhamento, Agendamento
-from .serializers import UserSerializer, UserCreateSerializer, AvaliacaoSerializer, AcompanhamentoSerializer, AgendamentoSerializer
+from .serializers import (
+    UserSerializer, UserCreateSerializer,
+    AvaliacaoSerializer, AcompanhamentoSerializer,
+    AgendamentoSerializer
+)
+
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -9,12 +14,14 @@ class RegisterView(generics.CreateAPIView):
     authentication_classes = ()
     serializer_class = UserCreateSerializer
 
+
 class UserDetailView(generics.RetrieveAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = UserSerializer
 
     def get_object(self):
         return self.request.user
+
 
 class AvaliacaoViewSet(viewsets.ModelViewSet):
     serializer_class = AvaliacaoSerializer
@@ -25,23 +32,34 @@ class AvaliacaoViewSet(viewsets.ModelViewSet):
         if user.role == 'funcionario':
             return Avaliacao.objects.filter(funcionario=user)
         elif user.role == 'gestor':
-            funcionarios = User.objects.filter(departamento=user.departamento)
-            return Avaliacao.objects.filter(funcionario__in=funcionarios)
+            funcionarios = User.objects.filter(
+                departamento=user.departamento
+            )
+            return Avaliacao.objects.filter(
+                funcionario__in=funcionarios
+            )
         else:
             return Avaliacao.objects.all()
 
     def perform_create(self, serializer):
         data = serializer.validated_data
-        total = data.get('exaustao_emocional', 0) + data.get('despersonalizacao', 0) - data.get('realizacao_profissional', 0)
-        
+        total = (
+            data.get('exaustao_emocional', 0)
+            + data.get('despersonalizacao', 0)
+            - data.get('realizacao_profissional', 0)
+        )
+
         if total > 50:
             risco = 'alto'
         elif total > 20:
             risco = 'medio'
         else:
             risco = 'baixo'
-            
-        serializer.save(funcionario=self.request.user, nivel_risco=risco)
+
+        serializer.save(
+            funcionario=self.request.user, nivel_risco=risco
+        )
+
 
 class AcompanhamentoViewSet(viewsets.ModelViewSet):
     serializer_class = AcompanhamentoSerializer
@@ -52,11 +70,14 @@ class AcompanhamentoViewSet(viewsets.ModelViewSet):
         if user.role == 'psicologo':
             return Acompanhamento.objects.filter(psicologo=user)
         elif user.role == 'funcionario':
-            return Acompanhamento.objects.filter(funcionario=user)
+            return Acompanhamento.objects.filter(
+                funcionario=user
+            )
         return Acompanhamento.objects.none()
 
     def perform_create(self, serializer):
         serializer.save(psicologo=self.request.user)
+
 
 class AgendamentoViewSet(viewsets.ModelViewSet):
     serializer_class = AgendamentoSerializer
