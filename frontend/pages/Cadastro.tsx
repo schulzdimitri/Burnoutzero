@@ -324,12 +324,12 @@ export default function Cadastro() {
 
               <TextField
                 fullWidth
-                label="Empresa (opcional)"
+                label="Codigo da empresa"
                 name="empresa"
                 value={formData.empresa}
                 onChange={handleChange}
                 margin="normal"
-                placeholder="Nome da empresa"
+                placeholder="Codigo da empresa"
               />
             </Box>
           )}
