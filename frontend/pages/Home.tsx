@@ -11,7 +11,11 @@ import {
   Avatar,
   Chip,
   Divider,
-  Paper
+  Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   EmojiEvents as EmojiEventsIcon,
@@ -20,7 +24,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+ 
 import { keyframes } from '@mui/system';
 
 // Animações de respiração
@@ -55,6 +59,39 @@ const moodOptions = [
   { label: 'Bem', icon: '🙂' },
   { label: 'Muito bem', icon: '😁' }
 ];
+
+// Simple achievement icon component: small emblem representing a badge
+const AchievementIcon = ({ badge }: { badge?: string }) => {
+  const key = (badge || '').toLowerCase();
+  // simple mapping to emoji/symbols and background colors
+  const map: Record<string, { symbol: string; bg: string }> = {
+    brasa: { symbol: '🔥', bg: '#FFF3E0' },
+    chama: { symbol: '', bg: '#FFEDE0' },
+    fogarel: { symbol: '', bg: '#FFF7E6' },
+    fogueira: { symbol: '', bg: '#FFF0E0' },
+    'incendiário': { symbol: '', bg: '#FFE8E0' },
+    fulgor: { symbol: '', bg: '#F3E8FF' },
+    gota: { symbol: '💧', bg: '#E3F2FD' },
+    balde: { symbol: '', bg: '#E8F6FF' },
+    onda: { symbol: '', bg: '#E0F7FA' },
+    'torneira de ouro': { symbol: '', bg: '#FFF8E1' },
+    cronômetro: { symbol: '⏱', bg: '#FFF3E0' },
+    brisa: { symbol: '🍃', bg: '#E8F5E9' },
+    lótus: { symbol: '', bg: '#F3E8FF' },
+    'pulmão duplo': { symbol: '', bg: '#FFF0F6' },
+    vela: { symbol: '', bg: '#FFF8E1' }
+  };
+
+  const found = map[key] ?? { symbol: ' ', bg: '#F5F5F5' };
+
+  return (
+    <Box sx={{ width: 44, height: 44, borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: found.bg, boxShadow: 1 }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+        {found.symbol}
+      </Typography>
+    </Box>
+  );
+};
 
 const getLocalDateKey = (date = new Date()) => {
   const year = date.getFullYear();
@@ -434,23 +471,31 @@ const MoodChallenge = ({ onCompleteXp }: { onCompleteXp: (xp: number) => void })
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [claimedDate, setClaimedDate] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [history, setHistory] = useState<string[]>([]);
 
   useEffect(() => {
-    const stored = readStorage<{ selectedMood: string | null; claimedDate: string | null }>(STORAGE_KEY, {
+    const stored = readStorage<{
+      selectedMood: string | null;
+      claimedDate: string | null;
+      history: string[];
+    }>(STORAGE_KEY, {
       selectedMood: null,
-      claimedDate: null
+      claimedDate: null,
+      history: []
     });
 
     setSelectedMood(stored.selectedMood);
     setClaimedDate(stored.claimedDate);
+    setHistory(stored.history ?? []);
   }, []);
 
   useEffect(() => {
     writeStorage(STORAGE_KEY, {
       selectedMood,
-      claimedDate
+      claimedDate,
+      history
     });
-  }, [selectedMood, claimedDate]);
+  }, [selectedMood, claimedDate, history]);
 
   const claimedToday = claimedDate === todayKey;
 
@@ -461,8 +506,33 @@ const MoodChallenge = ({ onCompleteXp }: { onCompleteXp: (xp: number) => void })
 
     setSelectedMood(label);
     setClaimedDate(todayKey);
+    // update history: add today's key if not present, then prune to last 7 days
+    setHistory((prev) => {
+      const hasToday = prev.includes(todayKey);
+      const next = hasToday ? prev : [...prev, todayKey];
+
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 6); // include today and previous 6 days => 7-day window
+
+      return next.filter((k) => {
+        const d = new Date(k + 'T00:00:00');
+        return d >= weekAgo;
+      });
+    });
+
     onCompleteXp(50);
   };
+
+  // weekly count: how many distinct day-keys in the last 7 days
+  const getWeeklyCount = () => {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 6);
+    return history.filter((k) => {
+      const d = new Date(k + 'T00:00:00');
+      return d >= weekAgo;
+    }).length;
+  };
+  const weeklyCount = getWeeklyCount();
 
   if (!isExpanded) {
     return (
@@ -488,9 +558,14 @@ const MoodChallenge = ({ onCompleteXp }: { onCompleteXp: (xp: number) => void })
             Clique para abrir as 5 reações e registrar seu estado.
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography variant="caption" color="text.secondary">
-              {claimedToday ? `Registrado hoje: ${selectedMood}` : '1 vez por dia • +50 XP'}
-            </Typography>
+            <Box>
+              <Typography variant="caption" color="text.secondary">
+                {claimedToday ? `Registrado hoje: ${selectedMood}` : '1 vez por dia • +50 XP'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                Registros esta semana: {weeklyCount} / 7
+              </Typography>
+            </Box>
             <Typography variant="h5">{selectedMood ? '✅' : '🙂'}</Typography>
           </Box>
         </Box>
@@ -514,9 +589,27 @@ const MoodChallenge = ({ onCompleteXp }: { onCompleteXp: (xp: number) => void })
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Escolha 1 reação por dia. +50 XP ao registrar.
         </Typography>
-        <Grid container spacing={1.5}>
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="caption" color="text.secondary">Registros esta semana</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5 }}>
+            <Box sx={{ flex: 1 }}>
+              <LinearProgress variant="determinate" value={(weeklyCount / 7) * 100} sx={{ height: 8, borderRadius: 4 }} />
+            </Box>
+            <Typography variant="caption" color="text.secondary">{weeklyCount} / 7</Typography>
+          </Box>
+        </Box>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(5, minmax(0, 1fr))' },
+            gap: 3,
+            mx: 'auto',
+            maxWidth: 620,
+            width: '100%'
+          }}
+        >
           {moodOptions.map((mood) => (
-            <Grid size={{ xs: 4, sm: 2 }} key={mood.label}>
+            <Box key={mood.label} sx={{ display: 'flex', justifyContent: 'center' }}>
               <Button
                 fullWidth
                 variant={selectedMood === mood.label ? 'contained' : 'outlined'}
@@ -532,9 +625,9 @@ const MoodChallenge = ({ onCompleteXp }: { onCompleteXp: (xp: number) => void })
                 <Typography variant="h6">{mood.icon}</Typography>
                 <Typography variant="caption">{mood.label}</Typography>
               </Button>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
         {selectedMood && (
           <Typography variant="caption" color="success.main" sx={{ mt: 1, display: 'block' }}>
             Humor registrado: {selectedMood}
@@ -603,15 +696,27 @@ const WaterChallenge = ({ onGainXp }: { onGainXp: (xp: number) => void }) => {
   const SIP_ML = 200;
   const TARGET_ML = 3000;
   const COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
-
   const [totalMl, setTotalMl] = useState(0);
   const [lastSipTime, setLastSipTime] = useState<number | null>(null);
   const [waterXp, setWaterXp] = useState(0);
   const [, setTick] = useState(0); // force update for countdown
 
+  const STORAGE_KEY = 'burnout-zero-water-weekly';
+
   useEffect(() => {
     const t = setInterval(() => setTick((n) => n + 1), 1000);
     return () => clearInterval(t);
+  }, []);
+
+  // load today's total from storage
+  useEffect(() => {
+    const stored = readStorage<{ history: Record<string, number>; awardedDate?: string }>(STORAGE_KEY, {
+      history: {},
+      awardedDate: undefined
+    });
+    const todayKey = getLocalDateKey();
+    const todays = stored.history?.[todayKey] ?? 0;
+    setTotalMl(todays);
   }, []);
 
   const now = Date.now();
@@ -620,9 +725,22 @@ const WaterChallenge = ({ onGainXp }: { onGainXp: (xp: number) => void }) => {
 
   const canSip = totalMl < TARGET_ML && (lastSipTime === null || elapsed >= COOLDOWN_MS);
 
+  const persistToday = (ml: number) => {
+    const key = STORAGE_KEY;
+    const stored = readStorage<{ history: Record<string, number>; awardedDate?: string }>(key, { history: {}, awardedDate: undefined });
+    const today = getLocalDateKey();
+    const nextHistory = { ...(stored.history || {}) };
+    nextHistory[today] = ml;
+    writeStorage(key, { history: nextHistory, awardedDate: stored.awardedDate });
+  };
+
   const handleSip = () => {
     if (!canSip) return;
-    setTotalMl((v) => Math.min(TARGET_ML, v + SIP_ML));
+    setTotalMl((v) => {
+      const next = Math.min(TARGET_ML, v + SIP_ML);
+      persistToday(next);
+      return next;
+    });
     setLastSipTime(Date.now());
     setWaterXp((x) => x + 5);
     onGainXp(5);
@@ -684,7 +802,7 @@ const WaterChallenge = ({ onGainXp }: { onGainXp: (xp: number) => void }) => {
 };
 
 export default function Jornada() {
-  const navigate = useNavigate();
+  
 
   // Dados do usuário
   const user = {
@@ -700,6 +818,49 @@ export default function Jornada() {
 
   const [totalXp, setTotalXp] = useState(user.xp);
   const [selectedConquestIndex, setSelectedConquestIndex] = useState<number | null>(null);
+  const [openRewards, setOpenRewards] = useState(false);
+  const [openObtainedConquests, setOpenObtainedConquests] = useState(false);
+
+  // user tier per category: -1 means no tier yet; index corresponds to achievement rank (0 = first tier)
+  const [userTiers, setUserTiers] = useState<{ consistency: number; hydration: number; breathing: number }>({ consistency: -1, hydration: -1, breathing: -1 });
+
+  // compute automatic tiers from stored data when opening rewards
+  useEffect(() => {
+    if (!openRewards) return;
+
+    // consistency: derive from streak storage
+    const streakStore = readStorage<{ streakDays?: number }>('burnout-zero-streak', { streakDays: 0 });
+    const streakDays = streakStore.streakDays ?? 0;
+    let consistencyTier = -1;
+    if (streakDays >= 365) consistencyTier = 4; // Ano inteiro
+    else if (streakDays >= 90) consistencyTier = 3; // Trimestre
+    else if (streakDays >= 30) consistencyTier = 2; // Mês
+    else if (streakDays >= 7) consistencyTier = 1; // Semana
+    else if (streakDays >= 1) consistencyTier = 0; // Primeiro passo
+
+    // hydration: derive from water history
+    const waterStore = readStorage<{ history: Record<string, number> }>('burnout-zero-water-weekly', { history: {} });
+    const hist = waterStore.history || {};
+    const dayValues = Object.values(hist || {});
+    const daysWith2L = dayValues.filter((v) => v >= 2000).length;
+    const daysWith1L = dayValues.filter((v) => v >= 1000).length;
+    const totalMl = dayValues.reduce((s, v) => s + v, 0);
+    let hydrationTier = -1;
+    if (daysWith2L >= 30) hydrationTier = 3; // Hidratado profissional
+    else if (totalMl >= 50000) hydrationTier = 2; // Oceano pessoal
+    else if (daysWith2L >= 10) hydrationTier = 1; // Balde cheio
+    else if (daysWith1L >= 1) hydrationTier = 0; // Primeiro gole
+
+    // breathing: attempt to read a breaths store (not yet available)
+    const breathStore = readStorage<{ cycles?: number }>('burnout-zero-breaths', { cycles: 0 });
+    const cycles = breathStore.cycles ?? 0;
+    let breathingTier = -1;
+    if (cycles >= 500) breathingTier = 2;
+    else if (cycles >= 100) breathingTier = 1;
+    else if (cycles >= 1) breathingTier = 0;
+
+    setUserTiers({ consistency: consistencyTier, hydration: hydrationTier, breathing: breathingTier });
+  }, [openRewards]);
   const [isDailyExpanded, setIsDailyExpanded] = useState(true);
   const [isWeeklyExpanded, setIsWeeklyExpanded] = useState(true);
   const [isConquestExpanded, setIsConquestExpanded] = useState(true);
@@ -708,22 +869,152 @@ export default function Jornada() {
     setTotalXp((prev) => prev + xp);
   };
 
-  // Desafios semanais
-  const desafiosSemanais = [
+  // (weekly challenge replaced by hydration challenge component below)
+
+  // Conquistas recentes (substituídas por itens do catálogo)
+  const conquistas = [
+    { titulo: 'Brasa Semanal', data: 'Hoje', icone: '' },
+    { titulo: 'Faísca', data: '3 dias atrás', icone: '' }
+  ];
+
+  // Achievement categories and tiers (ordered)
+    const achievementCategories = [
     {
-      titulo: '3 Sessões de Mindfulness',
-      xp: 150,
-      progresso: 2,
-      total: 3,
-      percentual: 66
+      key: 'consistency',
+      category: 'Consistência (Streak)',
+      achievements: [
+        { titulo: 'Faísca', requisito: 'Completar 1 desafio qualquer', xp: 50, badge: 'Brasa' },
+        { titulo: 'Brasa Semanal', requisito: '7 dias seguidos', xp: 200, badge: 'Chama' },
+        { titulo: 'Chama Mensal', requisito: '30 dias seguidos', xp: 1000, badge: 'Labareda' },
+        { titulo: 'Labareda Trimestral', requisito: '90 dias seguidos', xp: 5000, badge: 'Fogueira' },
+        { titulo: 'Fogaréu Ardente', requisito: '180 dias seguidos', xp: 20000, badge: 'Incendiário' },
+        { titulo: 'Fulgor Eterno', requisito: '365 dias seguidos', xp: 30000, badge: 'Fulgor' }
+      ]
+    },
+    {
+      key: 'hydration',
+      category: 'Hidratação (Água)',
+      achievements: [
+        { titulo: 'Gota iniciante', requisito: 'Beber 1L em um dia', xp: 50, badge: 'Gota' },
+        { titulo: 'Correnteza Pesada', requisito: 'Beber 2L em um dia (10x no total)', xp: 150, badge: 'Balde' },
+        { titulo: 'Rio Profundo', requisito: 'Beber 50L acumulados (25 dias de 2L)', xp: 500, badge: 'Onda' },
+        { titulo: 'Oceano Eterno', requisito: 'Completar a meta de água 30 dias', xp: 2000, badge: 'Torneira de ouro' },
+        { titulo: 'Maré Alta', requisito: 'Beber 100L acumulados', xp: 5000, badge: 'Tridente' },
+        { titulo: 'Relógio de Água', requisito: 'Fazer 10 goles no tempo certo (sem atrasar mais que 5 min)', xp: 300, badge: 'Cronômetro' }
+      ]
+    },
+    {
+      key: 'breathing',
+      category: 'Respiração e Calma',
+      achievements: [
+        { titulo: 'Sopro', requisito: 'Fazer 1 ciclo de respiração', xp: 30, badge: 'Brisa' },
+        { titulo: 'Brisa Cortante', requisito: 'Fazer 100 ciclos de respiração', xp: 400, badge: 'Lótus' },
+        { titulo: 'Pulmão de aço', requisito: 'Fazer 500 ciclos', xp: 1500, badge: 'Pulmão duplo' },
+        { titulo: 'Tornado Celeste', requisito: 'Fazer 1000 ciclos', xp: 100, badge: 'Vela' }
+      ]
     }
   ];
 
-  // Conquistas recentes
-  const conquistas = [
-    { titulo: 'Primeiros passos', data: '2 dias atrás', icone: '🌟' },
-    { titulo: 'Mestre da respiração', data: 'Hoje', icone: '🧘' }
-  ];
+  const obtainedAchievements = achievementCategories
+    .flatMap((category) =>
+      category.achievements.map((achievement, index) => {
+        const activeTier =
+          (category.key === 'consistency' && userTiers.consistency === index) ||
+          (category.key === 'hydration' && userTiers.hydration === index) ||
+          (category.key === 'breathing' && userTiers.breathing === index);
+
+        return {
+          category: category.category,
+          titulo: achievement.titulo,
+          requisito: achievement.requisito,
+          xp: achievement.xp,
+          badge: achievement.badge,
+          obtained: activeTier
+        };
+      })
+    )
+    .filter((achievement) => achievement.obtained);
+
+  const WeeklyHydrationChallenge = ({ onCompleteXp }: { onCompleteXp: (xp: number) => void }) => {
+    const STORAGE_KEY = 'burnout-zero-water-weekly';
+    const TARGET_DAILY_ML = 2000; // 2L per day
+    const TARGET_DAYS = 5; // 5 days per week
+    const [history, setHistory] = useState<Record<string, number>>({});
+    const [awardedDate, setAwardedDate] = useState<string | undefined>(undefined);
+
+    useEffect(() => {
+      const stored = readStorage<{ history: Record<string, number>; awardedDate?: string }>(STORAGE_KEY, { history: {}, awardedDate: undefined });
+      setHistory(stored.history || {});
+      setAwardedDate(stored.awardedDate);
+    }, []);
+
+    const getLast7DaysCount = () => {
+      const keys = Object.keys(history);
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 6);
+      return keys.filter((k) => {
+        const d = new Date(k + 'T00:00:00');
+        return d >= weekAgo && (history[k] ?? 0) >= TARGET_DAILY_ML;
+      }).length;
+    };
+
+    const weeklyCount = getLast7DaysCount();
+
+    useEffect(() => {
+      // if achieved and not awarded recently, award XP
+      if (weeklyCount >= TARGET_DAYS) {
+        const lastAward = awardedDate ? new Date(awardedDate) : null;
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 6);
+
+        const alreadyAwardedThisWindow = lastAward ? lastAward >= weekAgo : false;
+        if (!alreadyAwardedThisWindow) {
+          onCompleteXp(250);
+          const today = getLocalDateKey();
+          const stored = readStorage<{ history: Record<string, number>; awardedDate?: string }>(STORAGE_KEY, { history: history || {}, awardedDate: undefined });
+          writeStorage(STORAGE_KEY, { history: stored.history || {}, awardedDate: today });
+          setAwardedDate(today);
+        }
+      }
+    }, [weeklyCount, awardedDate, history, onCompleteXp]);
+
+    const progress = Math.min(100, (weeklyCount / TARGET_DAYS) * 100);
+
+    return (
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2,
+          borderRadius: 2,
+          bgcolor: 'grey.50',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+          Hidratação consistente
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <BoltIcon sx={{ fontSize: 16, color: 'warning.main' }} />
+          <Typography variant="caption" color="warning.main">
+            +250 XP (Beber 2L/dia por 5 dias)
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
+          <Box sx={{ flex: 1 }}>
+            <LinearProgress variant="determinate" value={progress} sx={{ height: 8, borderRadius: 4 }} />
+          </Box>
+          <Typography variant="caption" color="text.secondary">
+            {weeklyCount} DE {TARGET_DAYS} DIAS
+          </Typography>
+        </Box>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+          Meta semanal: beber 2L por dia durante 5 dias. Progresso conta os últimos 7 dias.
+        </Typography>
+      </Paper>
+    );
+  };
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 3 }, py: 3 }}>
@@ -739,7 +1030,7 @@ export default function Jornada() {
           <Button
             variant="outlined"
             startIcon={<EmojiEventsIcon />}
-            onClick={() => navigate('/recompensas')}
+            onClick={() => setOpenRewards(true)}
             sx={{ borderRadius: 2 }}
           >
             Ver Recompensas
@@ -796,46 +1087,9 @@ export default function Jornada() {
             {isWeeklyExpanded && (
               <CardContent sx={{ p: 3 }}>
                 <Grid container spacing={3}>
-                  {desafiosSemanais.map((desafio, index) => (
-                    <Grid size={{ xs: 12 }} key={index}>
-                      <Paper
-                        variant="outlined"
-                        sx={{
-                          p: 2,
-                          borderRadius: 2,
-                          bgcolor: 'grey.50',
-                          height: '100%',
-                          display: 'flex',
-                          flexDirection: 'column'
-                        }}
-                      >
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                          {desafio.titulo}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                          <BoltIcon sx={{ fontSize: 16, color: 'warning.main' }} />
-                          <Typography variant="caption" color="warning.main">
-                            +{desafio.xp} XP
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
-                          <Box sx={{ flex: 1 }}>
-                            <LinearProgress
-                              variant="determinate"
-                              value={desafio.percentual}
-                              sx={{ height: 8, borderRadius: 4 }}
-                            />
-                          </Box>
-                          <Typography variant="caption" color="text.secondary">
-                            {desafio.progresso} DE {desafio.total} CONCLUSÕES
-                          </Typography>
-                        </Box>
-                        <Typography variant="caption" color="success.main" sx={{ mt: 1, display: 'block' }}>
-                          {desafio.percentual}%
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  ))}
+                  <Grid size={{ xs: 12 }}>
+                    <WeeklyHydrationChallenge onCompleteXp={handleGainXp} />
+                  </Grid>
                   <Grid size={{ xs: 12 }}>
                     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                       <MoodChallenge onCompleteXp={handleGainXp} />
@@ -954,15 +1208,18 @@ export default function Jornada() {
             <CardContent sx={{ p: 3 }}>
               <Grid container spacing={2}>
                 {conquistas.map((conquista, index) => (
-                  <Grid size={{ xs: 12 }} key={index}>
+                  <Grid size={{ xs: 12, sm: 6 }} key={index}>
                     <Paper
                       variant="outlined"
                       sx={{
                         p: 2,
+                        minHeight: 104,
                         borderRadius: 2,
                         bgcolor: 'grey.50',
                         cursor: 'pointer',
-                        textAlign: 'center',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         transition: 'all 0.2s ease',
                         '&:hover': {
                           bgcolor: 'action.hover',
@@ -971,15 +1228,27 @@ export default function Jornada() {
                       }}
                       onClick={() => setSelectedConquestIndex(selectedConquestIndex === index ? null : index)}
                     >
-                      <Typography variant="h5" sx={{ mb: 1 }}>
-                        {conquista.icone}
-                      </Typography>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                        {conquista.titulo}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {conquista.data}
-                      </Typography>
+                      {(() => {
+                        const found = achievementCategories
+                          .flatMap((c) => c.achievements)
+                          .find((a) => a.titulo === conquista.titulo);
+                        return (
+                          <Box sx={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                            <Box sx={{
+                              width: 56,
+                              height: 56,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              <AchievementIcon badge={found?.badge} />
+                            </Box>
+                            <Typography variant="caption" color="text.secondary">
+                              Clique para ver
+                            </Typography>
+                          </Box>
+                        );
+                      })()}
                     </Paper>
                   </Grid>
                 ))}
@@ -1000,18 +1269,101 @@ export default function Jornada() {
                 variant="outlined"
                 startIcon={<EmojiEventsIcon />}
                 sx={{ mt: 3, borderRadius: 2 }}
-                onClick={() => navigate('/recompensas')}
+                onClick={() => setOpenObtainedConquests(true)}
               >
-                Resgatar Pontos
+                Conquistas obtidas
               </Button>
               <Typography variant="caption" color="text.secondary" align="center" display="block" sx={{ mt: 1 }}>
-                Troque seus {user.pontos} pts por prêmios
+                Veja as conquistas já desbloqueadas pelo seu progresso
               </Typography>
             </CardContent>
             )}
           </Card>
         </Grid>
       </Grid>
+        {/* Rewards dialog showing tiers per category */}
+        <Dialog open={openRewards} onClose={() => setOpenRewards(false)} fullWidth maxWidth="md">
+          <DialogTitle>Recompensas — Tiers por Categoria</DialogTitle>
+          <DialogContent>
+            <Typography variant="caption" color="text.secondary">
+              Cada categoria tem tiers ordenados. O usuário pode ter somente um tier ativo por categoria (escalonamento).
+            </Typography>
+            <Box sx={{ mt: 2 }}>
+                  {achievementCategories.map((cat) => (
+                    <Box key={cat.key} sx={{ mb: 2 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{cat.category}</Typography>
+                      <Grid container spacing={1} sx={{ mt: 1 }}>
+                        {cat.achievements.map((ach, ai) => (
+                          <Grid size={{ xs: 12, sm: 6 }} key={ai}>
+                            <Paper
+                              variant="outlined"
+                              sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                            >
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <AchievementIcon badge={ach.badge} />
+                                <Box>
+                                  <Typography variant="subtitle2">{ach.titulo}</Typography>
+                                  <Typography variant="caption" color="text.secondary">{ach.requisito}</Typography>
+                                </Box>
+                              </Box>
+                              <Box sx={{ textAlign: 'right' }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{ach.xp} XP</Typography>
+                                {((cat.key === 'consistency' && userTiers.consistency === ai) || (cat.key === 'hydration' && userTiers.hydration === ai) || (cat.key === 'breathing' && userTiers.breathing === ai)) && (
+                                  <Chip label="Ativo" color="success" size="small" sx={{ mt: 1 }} />
+                                )}
+                              </Box>
+                            </Paper>
+                          </Grid>
+                        ))}
+                      </Grid>
+                    </Box>
+                  ))}
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenRewards(false)}>Fechar</Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog open={openObtainedConquests} onClose={() => setOpenObtainedConquests(false)} fullWidth maxWidth="sm">
+          <DialogTitle>Conquistas obtidas</DialogTitle>
+          <DialogContent>
+            <Typography variant="caption" color="text.secondary">
+              Conquistas já desbloqueadas pelo usuário com base no progresso salvo.
+            </Typography>
+            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {obtainedAchievements.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  Nenhuma conquista obtida ainda.
+                </Typography>
+              ) : (
+                obtainedAchievements.map((achievement) => (
+                  <Paper
+                    key={`${achievement.category}-${achievement.titulo}`}
+                    variant="outlined"
+                    sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <AchievementIcon badge={achievement.badge} />
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                          {achievement.titulo}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {achievement.category}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Chip label={`${achievement.xp} XP`} color="success" size="small" />
+                  </Paper>
+                ))
+              )}
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenObtainedConquests(false)}>Fechar</Button>
+          </DialogActions>
+        </Dialog>
     </Box>
   );
 }
