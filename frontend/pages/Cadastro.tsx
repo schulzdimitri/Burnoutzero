@@ -1,4 +1,3 @@
-// frontend/pages/Cadastro.tsx
 import React, { useState } from 'react';
 import {
   Box,
@@ -40,7 +39,6 @@ export default function Cadastro() {
   const [error, setError] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
 
-  // Dados do formulário
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -123,7 +121,7 @@ export default function Cadastro() {
         
         alert('Cadastro realizado com sucesso! Faça login.');
         navigate('/login');
-      } catch (err: any) {
+      } catch {
         setError('Erro ao realizar o cadastro. Verifique os dados ou se o usuário já existe.');
       }
       return;

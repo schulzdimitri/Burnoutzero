@@ -1,4 +1,3 @@
-// frontend/pages/Login.tsx
 import React, { useState } from 'react';
 import {
   Box,
@@ -53,8 +52,9 @@ export default function Login() {
       } else {
         navigate('/funcionario');
       }
-    } catch (err: any) {
-      if (err.response && err.response.status === 401) {
+    } catch (err) {
+      const axiosError = err as { response?: { status: number } };
+      if (axiosError.response && axiosError.response.status === 401) {
         setError('Usuário ou senha inválidos');
       } else {
         setError('Ocorreu um erro ao fazer login. Tente novamente.');
