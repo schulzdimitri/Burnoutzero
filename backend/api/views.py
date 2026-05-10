@@ -11,6 +11,7 @@ from .serializers import (
     AgendamentoSerializer
 )
 
+
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (AllowAny,)
@@ -100,23 +101,27 @@ class AgendamentoViewSet(viewsets.ModelViewSet):
 
 # ── Geração automática de insight por regra ───────────────────────────────────
 
+
 def _gerar_insight(funcionario, avaliacao):
     linhas = []
     recs = []
 
     if avaliacao.nivel_risco == 'alto':
         linhas.append("Nível de risco elevado identificado na sua avaliação.")
-        recs.append("Recomendamos buscar apoio com um psicólogo o quanto antes.")
+        recs.append(
+            "Recomendamos buscar apoio com um psicólogo o quanto antes.")
     elif avaliacao.nivel_risco == 'medio':
         linhas.append("Sinais moderados de esgotamento detectados.")
-        recs.append("Pratique pausas regulares e converse com alguém de confiança.")
+        recs.append(
+            "Pratique pausas regulares e converse com alguém de confiança.")
     else:
         linhas.append("Seus indicadores estão dentro da faixa esperada.")
         recs.append("Continue mantendo seus hábitos saudáveis!")
 
     if avaliacao.estresse > 15:
         linhas.append("Estresse acima do esperado.")
-        recs.append("Considere atividades de descompressão como exercícios leves.")
+        recs.append(
+            "Considere atividades de descompressão como exercícios leves.")
 
     Insight.objects.create(
         funcionario=funcionario,
@@ -146,6 +151,7 @@ class InsightViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_serializer_class(self):
         from rest_framework import serializers
+
         class InsightSerializer(serializers.ModelSerializer):
             class Meta:
                 model = Insight
