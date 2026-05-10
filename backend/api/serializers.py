@@ -40,6 +40,7 @@ class AcompanhamentoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Acompanhamento
         fields = '__all__'
+        read_only_fields = ['psicologo']
 
 
 class AgendamentoSerializer(serializers.ModelSerializer):
