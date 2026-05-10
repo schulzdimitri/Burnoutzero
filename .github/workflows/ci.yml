@@ -84,8 +84,27 @@ jobs:
     defaults:
       run:
         working-directory: ./backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: test_burnout_db
+          POSTGRES_USER: burnout_user
+          POSTGRES_PASSWORD: burnout_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U burnout_user -d test_burnout_db"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     env:
       DJANGO_SECRET_KEY: ci-secret-key-not-for-production
+      POSTGRES_DB: test_burnout_db
+      POSTGRES_USER: burnout_user
+      POSTGRES_PASSWORD: burnout_pass
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
     steps:
       - uses: actions/checkout@v4
 

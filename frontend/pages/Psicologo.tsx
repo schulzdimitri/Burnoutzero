@@ -1,24 +1,54 @@
 // frontend/pages/Psicologo.tsx
+import { useState, useEffect } from 'react';
 import { 
   Box, Typography, Grid, Paper, List, ListItem, ListItemText, 
-  Avatar, Chip, Card, CardContent 
+  Avatar, Chip, Card, CardContent, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions 
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PsychologyIcon from '@mui/icons-material/Psychology';
+import api from '../services/api';
 
 export default function Psicologo() {
-  const pacientes = [
-    { nome: 'João Silva', ultimaConsulta: '2026-01-15', status: 'melhora', nivel: 'moderado' },
-    { nome: 'Maria Santos', ultimaConsulta: '2026-01-14', status: 'estavel', nivel: 'leve' },
-    { nome: 'Pedro Costa', ultimaConsulta: '2026-01-13', status: 'atencao', nivel: 'grave' },
-    { nome: 'Ana Oliveira', ultimaConsulta: '2026-01-12', status: 'melhora', nivel: 'moderado' },
-  ];
+  const [pacientes, setPacientes] = useState<any[]>([]);
+  const [insightsData, setInsightsData] = useState<any[]>([]);
+  const [openValidar, setOpenValidar] = useState(false);
+  const [selectedInsight, setSelectedInsight] = useState<any>(null);
 
-  const insights = [
-    { paciente: 'João Silva', insight: 'Apresentou melhora significativa nos níveis de ansiedade', data: '2026-01-15' },
-    { paciente: 'Maria Santos', insight: 'Recomendar exercícios de respiração', data: '2026-01-14' },
-  ];
+  const fetchData = async () => {
+    try {
+      const [acRes, inRes] = await Promise.all([
+        api.get('/acompanhamentos/'),
+        api.get('/insights/')
+      ]);
+      setPacientes(acRes.data);
+      setInsightsData(inRes.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleValidarClick = (insight: any) => {
+    setSelectedInsight(insight);
+    setOpenValidar(true);
+  };
+
+  const handleSalvarValidacao = async () => {
+    try {
+      await api.patch(`/insights/${selectedInsight.id}/validar/`, {
+        texto: selectedInsight.texto,
+        recomendacoes: selectedInsight.recomendacoes
+      });
+      setOpenValidar(false);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <Box className="container">
@@ -75,25 +105,20 @@ export default function Psicologo() {
               <Typography variant="h6">Meus Pacientes</Typography>
             </Box>
             <List>
-              {pacientes.map((paciente, index) => (
+              {pacientes.map((paciente: any, index: number) => (
                 <ListItem key={index} divider>
                   <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
-                    {paciente.nome[0]}
+                    {paciente.funcionario?.username?.[0] || 'P'}
                   </Avatar>
                   <ListItemText 
-                    primary={paciente.nome}
-                    secondary={`Última consulta: ${paciente.ultimaConsulta}`}
-                  />
-                  <Chip 
-                    label={paciente.nivel}
-                    color={paciente.nivel === 'grave' ? 'error' : paciente.nivel === 'moderado' ? 'warning' : 'success'}
-                    size="small"
-                    sx={{ mr: 1 }}
+                    primary={paciente.funcionario?.username || 'Paciente'}
+                    secondary={`Início: ${new Date(paciente.data).toLocaleDateString()}`}
                   />
                   <Chip 
                     label={paciente.status}
-                    variant="outlined"
+                    color={paciente.status === 'ativo' ? 'success' : 'default'}
                     size="small"
+                    sx={{ mr: 1 }}
                   />
                 </ListItem>
               ))}
@@ -105,18 +130,52 @@ export default function Psicologo() {
         <Grid size={{ xs: 12, md: 4 }}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Insights Gerados</Typography>
-            {insights.map((insight, index) => (
+            {insightsData.map((insight: any, index: number) => (
               <Card key={index} sx={{ mb: 2, bgcolor: 'info.light', color: 'white' }}>
                 <CardContent>
-                  <Typography variant="subtitle2">{insight.paciente}</Typography>
-                  <Typography variant="body2" sx={{ my: 1 }}>{insight.insight}</Typography>
-                  <Typography variant="caption">{insight.data}</Typography>
+                  <Typography variant="subtitle2">Insight Automático</Typography>
+                  <Typography variant="body2" sx={{ my: 1 }}>{insight.texto}</Typography>
+                  <Typography variant="caption" display="block">{new Date(insight.gerado_em).toLocaleDateString()}</Typography>
+                  <Button size="small" variant="contained" sx={{ mt: 1 }} onClick={() => handleValidarClick(insight)}>
+                    Analisar / Validar
+                  </Button>
                 </CardContent>
               </Card>
             ))}
           </Paper>
         </Grid>
       </Grid>
+
+      {/* Modal de Validação */}
+      <Dialog open={openValidar} onClose={() => setOpenValidar(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Validar Insight</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Texto do Insight"
+            multiline
+            rows={3}
+            fullWidth
+            margin="normal"
+            value={selectedInsight?.texto || ''}
+            onChange={(e) => setSelectedInsight({ ...selectedInsight, texto: e.target.value })}
+          />
+          <TextField
+            label="Recomendações"
+            multiline
+            rows={3}
+            fullWidth
+            margin="normal"
+            value={selectedInsight?.recomendacoes || ''}
+            onChange={(e) => setSelectedInsight({ ...selectedInsight, recomendacoes: e.target.value })}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenValidar(false)}>Cancelar</Button>
+          <Button variant="contained" onClick={handleSalvarValidacao}>
+            Salvar e Validar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

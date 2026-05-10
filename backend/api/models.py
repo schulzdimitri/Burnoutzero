@@ -22,9 +22,10 @@ class Avaliacao(models.Model):
     )
     data_avaliacao = models.DateTimeField(auto_now_add=True)
 
-    exaustao_emocional = models.IntegerField()
-    despersonalizacao = models.IntegerField()
-    realizacao_profissional = models.IntegerField()
+    estresse = models.IntegerField(default=0)
+    ansiedade = models.IntegerField(default=0)
+    burnout = models.IntegerField(default=0)
+    depressao = models.IntegerField(default=0)
 
     RISK_CHOICES = (
         ('baixo', 'Baixo'),

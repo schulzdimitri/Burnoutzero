@@ -1,4 +1,5 @@
 // frontend/pages/Gestor.tsx
+import { useState, useEffect } from 'react';
 import { 
   Box, Typography, Grid, Paper, Alert, Chip, Card, CardContent,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow
@@ -7,13 +8,24 @@ import WarningIcon from '@mui/icons-material/Warning';
 import GroupIcon from '@mui/icons-material/Group';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import api from '../services/api';
 
 export default function Gestor() {
-  const alertas = [
-    { setor: 'TI', funcionario: 'Carlos', indicador: 'Estresse', nivel: 85, dias: 5 },
-    { setor: 'RH', funcionario: 'Ana', indicador: 'Burnout', nivel: 78, dias: 3 },
-    { setor: 'Vendas', funcionario: 'Pedro', indicador: 'Ansiedade', nivel: 92, dias: 2 },
-  ];
+  const [dashboardData, setDashboardData] = useState<any>(null);
+
+  useEffect(() => {
+    api.get('/gestor/team-overview/')
+      .then(res => setDashboardData(res.data))
+      .catch(err => console.error(err));
+  }, []);
+
+  const alertas = dashboardData?.alertas_recentes || [];
+  const medias = dashboardData?.medias || {
+    media_estresse: 0,
+    media_ansiedade: 0,
+    media_burnout: 0,
+    media_depressao: 0
+  };
 
   const metricasSetores = [
     { setor: 'TI', engajamento: 85, saude: 'Bom', alertas: 2 },
@@ -36,20 +48,20 @@ export default function Gestor() {
               <WarningIcon color="error" />
               <Typography variant="h6" color="error">Alertas da Equipe</Typography>
             </Box>
-            {alertas.map((alerta, index) => (
+            {alertas.map((alerta: any, index: number) => (
               <Alert 
                 key={index} 
                 severity="warning" 
                 sx={{ mb: 1 }}
                 action={
                   <Chip 
-                    label={`${alerta.dias} dias`} 
+                    label={new Date(alerta.data_avaliacao).toLocaleDateString()} 
                     size="small" 
                     color="warning"
                   />
                 }
               >
-                <strong>{alerta.setor}:</strong> {alerta.funcionario} - {alerta.indicador} em nível crítico ({alerta.nivel}%)
+                <strong>Usuário:</strong> {alerta.funcionario__username} - Avaliação de alto risco identificada.
               </Alert>
             ))}
           </Paper>
@@ -70,8 +82,8 @@ export default function Gestor() {
           <Card>
             <CardContent sx={{ textAlign: 'center' }}>
               <TrendingUpIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
-              <Typography variant="h4">87%</Typography>
-              <Typography color="text.secondary">Engajamento médio</Typography>
+              <Typography variant="h4">{medias.media_estresse?.toFixed(1) || 0}</Typography>
+              <Typography color="text.secondary">Estresse Médio</Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -80,7 +92,7 @@ export default function Gestor() {
           <Card>
             <CardContent sx={{ textAlign: 'center' }}>
               <WarningIcon sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
-              <Typography variant="h4">6</Typography>
+              <Typography variant="h4">{alertas.length}</Typography>
               <Typography color="text.secondary">Alertas ativos</Typography>
             </CardContent>
           </Card>
@@ -90,8 +102,8 @@ export default function Gestor() {
           <Card>
             <CardContent sx={{ textAlign: 'center' }}>
               <AssessmentIcon sx={{ fontSize: 40, color: 'secondary.main', mb: 1 }} />
-              <Typography variant="h4">92%</Typography>
-              <Typography color="text.secondary">Participação</Typography>
+              <Typography variant="h4">{medias.media_burnout?.toFixed(1) || 0}</Typography>
+              <Typography color="text.secondary">Burnout Médio</Typography>
             </CardContent>
           </Card>
         </Grid>

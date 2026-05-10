@@ -47,14 +47,15 @@ class AvaliacaoViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         data = serializer.validated_data
         total = (
-            data.get('exaustao_emocional', 0)
-            + data.get('despersonalizacao', 0)
-            - data.get('realizacao_profissional', 0)
+            data.get('estresse', 0)
+            + data.get('ansiedade', 0)
+            + data.get('burnout', 0)
+            + data.get('depressao', 0)
         )
 
-        if total > 50:
+        if total >= 50:
             risco = 'alto'
-        elif total > 20:
+        elif total >= 20:
             risco = 'medio'
         else:
             risco = 'baixo'
@@ -113,8 +114,8 @@ def _gerar_insight(funcionario, avaliacao):
         linhas.append("Seus indicadores estão dentro da faixa esperada.")
         recs.append("Continue mantendo seus hábitos saudáveis!")
 
-    if avaliacao.exaustao_emocional > 15:
-        linhas.append("Exaustão emocional acima do esperado.")
+    if avaliacao.estresse > 15:
+        linhas.append("Estresse acima do esperado.")
         recs.append("Considere atividades de descompressão como exercícios leves.")
 
     Insight.objects.create(
@@ -180,9 +181,10 @@ def team_overview(request):
         return Response({'error': 'Acesso negado.'}, status=403)
     funcionarios = User.objects.filter(departamento=request.user.departamento)
     agg = Avaliacao.objects.filter(funcionario__in=funcionarios).aggregate(
-        media_exaustao=Avg('exaustao_emocional'),
-        media_despersonalizacao=Avg('despersonalizacao'),
-        media_realizacao=Avg('realizacao_profissional'),
+        media_estresse=Avg('estresse'),
+        media_ansiedade=Avg('ansiedade'),
+        media_burnout=Avg('burnout'),
+        media_depressao=Avg('depressao'),
     )
     alertas = Avaliacao.objects.filter(
         funcionario__in=funcionarios, nivel_risco='alto'

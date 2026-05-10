@@ -1,5 +1,5 @@
 // frontend/pages/Funcionario.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Box, Typography, Grid, Card, CardContent, LinearProgress, 
   Paper, Button, List, ListItem, ListItemText, Avatar,
@@ -87,43 +87,103 @@ const psicologos: Psicologo[] = [
   },
 ];
 
+type Avaliacao = {
+  id: number;
+  estresse: number;
+  ansiedade: number;
+  burnout: number;
+  depressao: number;
+  nivel_risco: string;
+  data_avaliacao: string;
+};
+
+type Insight = {
+  id: number;
+  texto: string;
+  recomendacoes: string;
+  gerado_em: string;
+};
+
+type Agendamento = {
+  id: number;
+  nome_psicologo: string;
+  data_hora: string;
+  status: string;
+};
+
 export default function Funcionario() {
   const [showChat, setShowChat] = useState(false);
   const [message, setMessage] = useState('');
   const [selectedPsicologo, setSelectedPsicologo] = useState<Psicologo | null>(null);
   const [selectedHorario, setSelectedHorario] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
+  const [openAvaliacaoDialog, setOpenAvaliacaoDialog] = useState(false);
+  const [novaAvaliacao, setNovaAvaliacao] = useState({ estresse: 0, ansiedade: 0, burnout: 0, depressao: 0 });
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: SnackbarSeverity }>({
     open: false,
     message: '',
     severity: 'success',
   });
+
+  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
+  const [insightsData, setInsightsData] = useState<Insight[]>([]);
+  const [pontos, setPontos] = useState(0);
+  const [proximasConsultas, setProximasConsultas] = useState<Agendamento[]>([]);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [avRes, inRes, ptsRes, agRes] = await Promise.all([
+        api.get('/avaliacoes/'),
+        api.get('/insights/'),
+        api.get('/gamificacao/minha-pontuacao/'),
+        api.get('/agendamentos/')
+      ]);
+      setAvaliacoes(avRes.data);
+      setInsightsData(inRes.data);
+      setPontos(ptsRes.data.total_pontos || 0);
+      setProximasConsultas(agRes.data);
+    } catch (error) {
+      console.error('Erro ao buscar dados:', error);
+    }
+  };
+
+  const handleEnviarAvaliacao = async () => {
+    try {
+      await api.post('/avaliacoes/', novaAvaliacao);
+      setOpenAvaliacaoDialog(false);
+      setSnackbar({ open: true, message: 'Avaliação enviada com sucesso!', severity: 'success' });
+      fetchData();
+    } catch (error) {
+      setSnackbar({ open: true, message: 'Erro ao enviar avaliação.', severity: 'error' });
+    }
+  };
   
-  // Dados simulados
-  const metrics = [
-    { name: 'Estresse', value: 35, status: 'normal', color: '#4CAF50' },
-    { name: 'Ansiedade', value: 62, status: 'atencao', color: '#FFB347' },
-    { name: 'Burnout', value: 28, status: 'normal', color: '#4CAF50' },
-    { name: 'Depressão', value: 15, status: 'normal', color: '#4CAF50' },
+  const ultimaAvaliacao = avaliacoes.length > 0 ? avaliacoes[avaliacoes.length - 1] : null;
+
+  const metrics = ultimaAvaliacao ? [
+    { name: 'Estresse', value: ultimaAvaliacao.estresse, status: ultimaAvaliacao.estresse > 50 ? 'atencao' : 'normal', color: '#FFB347' },
+    { name: 'Ansiedade', value: ultimaAvaliacao.ansiedade, status: ultimaAvaliacao.ansiedade > 50 ? 'atencao' : 'normal', color: '#FFB347' },
+    { name: 'Burnout', value: ultimaAvaliacao.burnout, status: ultimaAvaliacao.burnout > 50 ? 'atencao' : 'normal', color: '#4CAF50' },
+    { name: 'Depressão', value: ultimaAvaliacao.depressao, status: ultimaAvaliacao.depressao > 50 ? 'atencao' : 'normal', color: '#4CAF50' },
+  ] : [
+    { name: 'Estresse', value: 0, status: 'normal', color: '#4CAF50' },
+    { name: 'Ansiedade', value: 0, status: 'normal', color: '#4CAF50' },
+    { name: 'Burnout', value: 0, status: 'normal', color: '#4CAF50' },
+    { name: 'Depressão', value: 0, status: 'normal', color: '#4CAF50' },
   ];
 
-  const insights = [
-    { 
-      date: '2026-01-15', 
-      text: 'Seu nível de estresse está controlado esta semana. Continue com as práticas de mindfulness!',
-      type: 'positive' 
-    },
-    { 
-      date: '2026-01-14', 
-      text: 'Sua ansiedade aumentou 15% esta semana. Que tal fazer uma sessão de respiração guiada?',
-      type: 'warning' 
-    },
-  ];
+  const insights = insightsData.map(i => ({
+    date: new Date(i.gerado_em).toLocaleDateString(),
+    text: i.texto,
+    type: 'info'
+  }));
 
   const historico = [
-    { date: '2026-01-15', pontos: 50, atividade: 'Questionário diário' },
-    { date: '2026-01-14', pontos: 30, atividade: 'Check-in semanal' },
-    { date: '2026-01-13', pontos: 20, atividade: 'Exercício de respiração' },
+    { date: new Date().toLocaleDateString(), pontos: 10, atividade: 'Avaliação diária' },
   ];
 
   const handleAgendar = (psicologo: Psicologo, horario: string) => {
@@ -144,6 +204,7 @@ export default function Funcionario() {
         message: `Consulta agendada com ${selectedPsicologo?.nome} para ${selectedHorario}.`,
         severity: 'success',
       });
+      fetchData(); // recarrega a lista de agendamentos
     } catch (error) {
       setSnackbar({
         open: true,
@@ -177,6 +238,13 @@ export default function Funcionario() {
             onClick={() => setShowChat(true)}
           >
             Chat de Acolhimento
+          </Button>
+          <Button 
+            variant="contained" 
+            color="secondary"
+            onClick={() => setOpenAvaliacaoDialog(true)}
+          >
+            Nova Avaliação
           </Button>
         </Box>
       </Box>
@@ -267,7 +335,7 @@ export default function Funcionario() {
               <EmojiEventsIcon sx={{ fontSize: 40 }} />
               <Box>
                 <Typography variant="h6">Seus Pontos</Typography>
-                <Typography variant="h3">100 pontos</Typography>
+                <Typography variant="h3">{pontos} pontos</Typography>
                 <Typography variant="body2">
                   Complete questionários diários para ganhar mais pontos!
                 </Typography>
@@ -399,15 +467,29 @@ export default function Funcionario() {
                     Proximas Consultas
                   </Typography>
 
-                  <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
-                    <CalendarMonthIcon color="primary" />
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="subtitle2">Nenhuma consulta agendada</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Agende sua primeira consulta acima
-                      </Typography>
+                  {proximasConsultas.length > 0 ? (
+                    proximasConsultas.map((consulta) => (
+                      <Box key={consulta.id} sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                        <CalendarMonthIcon color="primary" />
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="subtitle2">{consulta.nome_psicologo}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Data e Hora: {consulta.data_hora} | Status: {consulta.status}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ))
+                  ) : (
+                    <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                      <CalendarMonthIcon color="primary" />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="subtitle2">Nenhuma consulta agendada</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Agende sua primeira consulta acima
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
+                  )}
 
                   <Button
                     fullWidth
@@ -488,6 +570,53 @@ export default function Funcionario() {
           <Button onClick={() => setOpenDialog(false)}>Cancelar</Button>
           <Button variant="contained" onClick={handleConfirmarAgendamento}>
             Confirmar Agendamento
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={openAvaliacaoDialog} onClose={() => setOpenAvaliacaoDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ bgcolor: 'secondary.main', color: 'white' }}>Nova Avaliação</DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <Typography variant="body2" gutterBottom sx={{ mb: 2 }}>
+            Como você está se sentindo? Avalie de 0 a 100 cada métrica.
+          </Typography>
+          <TextField
+            label="Estresse"
+            type="number"
+            fullWidth
+            margin="normal"
+            value={novaAvaliacao.estresse}
+            onChange={(e) => setNovaAvaliacao({ ...novaAvaliacao, estresse: Number(e.target.value) })}
+          />
+          <TextField
+            label="Ansiedade"
+            type="number"
+            fullWidth
+            margin="normal"
+            value={novaAvaliacao.ansiedade}
+            onChange={(e) => setNovaAvaliacao({ ...novaAvaliacao, ansiedade: Number(e.target.value) })}
+          />
+          <TextField
+            label="Burnout"
+            type="number"
+            fullWidth
+            margin="normal"
+            value={novaAvaliacao.burnout}
+            onChange={(e) => setNovaAvaliacao({ ...novaAvaliacao, burnout: Number(e.target.value) })}
+          />
+          <TextField
+            label="Depressão"
+            type="number"
+            fullWidth
+            margin="normal"
+            value={novaAvaliacao.depressao}
+            onChange={(e) => setNovaAvaliacao({ ...novaAvaliacao, depressao: Number(e.target.value) })}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setOpenAvaliacaoDialog(false)}>Cancelar</Button>
+          <Button variant="contained" color="secondary" onClick={handleEnviarAvaliacao}>
+            Enviar Avaliação
           </Button>
         </DialogActions>
       </Dialog>
