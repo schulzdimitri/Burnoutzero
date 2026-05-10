@@ -1,4 +1,3 @@
-// frontend/pages/Funcionario.tsx
 import { useState, useEffect } from 'react';
 import { 
   Box, Typography, Grid, Card, CardContent, LinearProgress, 
@@ -130,10 +129,6 @@ export default function Funcionario() {
   const [pontos, setPontos] = useState(0);
   const [proximasConsultas, setProximasConsultas] = useState<Agendamento[]>([]);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const fetchData = async () => {
     try {
       const [avRes, inRes, ptsRes, agRes] = await Promise.all([
@@ -151,13 +146,22 @@ export default function Funcionario() {
     }
   };
 
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      if (isMounted) await fetchData();
+    };
+    void load();
+    return () => { isMounted = false; };
+  }, []);
+
   const handleEnviarAvaliacao = async () => {
     try {
       await api.post('/avaliacoes/', novaAvaliacao);
       setOpenAvaliacaoDialog(false);
       setSnackbar({ open: true, message: 'Avaliação enviada com sucesso!', severity: 'success' });
       fetchData();
-    } catch (error) {
+    } catch {
       setSnackbar({ open: true, message: 'Erro ao enviar avaliação.', severity: 'error' });
     }
   };
@@ -204,8 +208,8 @@ export default function Funcionario() {
         message: `Consulta agendada com ${selectedPsicologo?.nome} para ${selectedHorario}.`,
         severity: 'success',
       });
-      fetchData(); // recarrega a lista de agendamentos
-    } catch (error) {
+      fetchData();
+    } catch {
       setSnackbar({
         open: true,
         message: 'Erro ao agendar consulta.',
@@ -506,7 +510,6 @@ export default function Funcionario() {
           </Grid>
         </>
       ) : (
-        // Chat de acolhimento
         <Paper sx={{ p: 3, height: '600px', display: 'flex', flexDirection: 'column' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
             <Avatar sx={{ bgcolor: 'primary.main' }}>IA</Avatar>

@@ -1,4 +1,3 @@
-// frontend/pages/Jornada.tsx
 import { useState, useEffect, useRef } from 'react';
 import {
   Box,
@@ -27,7 +26,6 @@ import {
  
 import { keyframes } from '@mui/system';
 
-// Animações de respiração
 const breathIn = keyframes`
   0% { transform: scale(1); opacity: 0.6; }
   100% { transform: scale(1.8); opacity: 0.3; }
@@ -60,10 +58,8 @@ const moodOptions = [
   { label: 'Muito bem', icon: '😁' }
 ];
 
-// Simple achievement icon component: small emblem representing a badge
 const AchievementIcon = ({ badge }: { badge?: string }) => {
   const key = (badge || '').toLowerCase();
-  // simple mapping to emoji/symbols and background colors
   const map: Record<string, { symbol: string; bg: string }> = {
     brasa: { symbol: '🔥', bg: '#FFF3E0' },
     chama: { symbol: '', bg: '#FFEDE0' },
@@ -147,7 +143,7 @@ const BreathingExercise = ({ onComplete }: { onComplete: (xp: number) => void })
   const [totalTime, setTotalTime] = useState(0);
   const [cyclesCompleted, setCyclesCompleted] = useState(0);
   const [xpAwarded, setXpAwarded] = useState(false);
-  const TOTAL_DURATION = 60; // 1 minuto em segundos
+  const TOTAL_DURATION = 60;
   const INHALE_DURATION = 4;
   const HOLD_DURATION = 3;
   const EXHALE_DURATION = 3;
@@ -328,59 +324,43 @@ const BreathingExercise = ({ onComplete }: { onComplete: (xp: number) => void })
 
 const DailyWordsMission = ({ onCompleteXp }: { onCompleteXp: (xp: number) => void }) => {
   const STORAGE_KEY = 'burnout-zero-daily-words';
-  const [collectedWords, setCollectedWords] = useState<string[]>([]);
-  const [currentWord, setCurrentWord] = useState<string | null>(null);
-  const [nextWordAt, setNextWordAt] = useState<number>(Date.now());
-  const [completed, setCompleted] = useState(false);
-  const [xpAwarded, setXpAwarded] = useState(false);
-  const [tick, setTick] = useState(0);
+  
+  const [state, setState] = useState(() => readStorage<{
+    collectedWords: string[];
+    currentWord: string | null;
+    nextWordAt: number;
+    completed: boolean;
+    xpAwarded: boolean;
+  }>(STORAGE_KEY, {
+    collectedWords: [],
+    currentWord: null,
+    nextWordAt: Date.now(),
+    completed: false,
+    xpAwarded: false
+  }));
+
+  const { collectedWords, currentWord, nextWordAt, completed, xpAwarded } = state;
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
 
   useEffect(() => {
-    const stored = readStorage<{
-      collectedWords: string[];
-      currentWord: string | null;
-      nextWordAt: number;
-      completed: boolean;
-      xpAwarded: boolean;
-    }>(STORAGE_KEY, {
-      collectedWords: [],
-      currentWord: null,
-      nextWordAt: Date.now(),
-      completed: false,
-      xpAwarded: false
-    });
-
-    setCollectedWords(stored.collectedWords);
-    setCurrentWord(stored.currentWord);
-    setNextWordAt(stored.nextWordAt);
-    setCompleted(stored.completed);
-    setXpAwarded(stored.xpAwarded);
-  }, []);
-
-  useEffect(() => {
-    const timer = setInterval(() => setTick((value) => value + 1), 1000);
+    const timer = setInterval(() => {
+      const now = Date.now();
+      setCurrentTime(now);
+      
+      setState(prev => {
+        if (!prev.completed && !prev.currentWord && now >= prev.nextWordAt) {
+          return { ...prev, currentWord: randomWord() };
+        }
+        return prev;
+      });
+    }, 1000);
     return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
-    if (completed) {
-      return;
-    }
+    writeStorage(STORAGE_KEY, state);
+  }, [state]);
 
-    if (!currentWord && Date.now() >= nextWordAt) {
-      setCurrentWord(randomWord());
-    }
-  }, [completed, currentWord, nextWordAt, tick]);
-
-  useEffect(() => {
-    writeStorage(STORAGE_KEY, {
-      collectedWords,
-      currentWord,
-      nextWordAt,
-      completed,
-      xpAwarded
-    });
-  }, [collectedWords, currentWord, nextWordAt, completed, xpAwarded]);
 
   const handleRecordWord = () => {
     if (!currentWord || completed) {
@@ -390,18 +370,21 @@ const DailyWordsMission = ({ onCompleteXp }: { onCompleteXp: (xp: number) => voi
     const nextCollected = [...collectedWords, currentWord];
     const isFinished = nextCollected.length >= 5;
 
-    setCollectedWords(nextCollected);
-    setCurrentWord(null);
-  setNextWordAt(Date.now() + WORD_INTERVAL_MS);
+    setState(prev => ({
+      ...prev,
+      collectedWords: nextCollected,
+      currentWord: null,
+      nextWordAt: Date.now() + WORD_INTERVAL_MS,
+      completed: isFinished ? true : prev.completed,
+      xpAwarded: (isFinished && !prev.xpAwarded) ? true : prev.xpAwarded
+    }));
 
     if (isFinished && !xpAwarded) {
-      setCompleted(true);
-      setXpAwarded(true);
       onCompleteXp(75);
     }
   };
 
-  const remainingMs = Math.max(0, nextWordAt - Date.now());
+  const remainingMs = Math.max(0, nextWordAt - currentTime);
   const progress = (collectedWords.length / 5) * 100;
 
   return (
@@ -468,34 +451,23 @@ const DailyWordsMission = ({ onCompleteXp }: { onCompleteXp: (xp: number) => voi
 const MoodChallenge = ({ onCompleteXp }: { onCompleteXp: (xp: number) => void }) => {
   const STORAGE_KEY = 'burnout-zero-mood-challenge';
   const todayKey = getLocalDateKey();
-  const [selectedMood, setSelectedMood] = useState<string | null>(null);
-  const [claimedDate, setClaimedDate] = useState<string | null>(null);
+
+  const [state, setState] = useState(() => readStorage<{
+    selectedMood: string | null;
+    claimedDate: string | null;
+    history: string[];
+  }>(STORAGE_KEY, {
+    selectedMood: null,
+    claimedDate: null,
+    history: []
+  }));
+
+  const { selectedMood, claimedDate, history } = state;
   const [isExpanded, setIsExpanded] = useState(false);
-  const [history, setHistory] = useState<string[]>([]);
 
   useEffect(() => {
-    const stored = readStorage<{
-      selectedMood: string | null;
-      claimedDate: string | null;
-      history: string[];
-    }>(STORAGE_KEY, {
-      selectedMood: null,
-      claimedDate: null,
-      history: []
-    });
-
-    setSelectedMood(stored.selectedMood);
-    setClaimedDate(stored.claimedDate);
-    setHistory(stored.history ?? []);
-  }, []);
-
-  useEffect(() => {
-    writeStorage(STORAGE_KEY, {
-      selectedMood,
-      claimedDate,
-      history
-    });
-  }, [selectedMood, claimedDate, history]);
+    writeStorage(STORAGE_KEY, state);
+  }, [state]);
 
   const claimedToday = claimedDate === todayKey;
 
@@ -504,26 +476,29 @@ const MoodChallenge = ({ onCompleteXp }: { onCompleteXp: (xp: number) => void })
       return;
     }
 
-    setSelectedMood(label);
-    setClaimedDate(todayKey);
-    // update history: add today's key if not present, then prune to last 7 days
-    setHistory((prev) => {
-      const hasToday = prev.includes(todayKey);
-      const next = hasToday ? prev : [...prev, todayKey];
+    setState((prev) => {
+      const hasToday = prev.history.includes(todayKey);
+      const nextHistory = hasToday ? prev.history : [...prev.history, todayKey];
 
       const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 6); // include today and previous 6 days => 7-day window
+      weekAgo.setDate(weekAgo.getDate() - 6);
 
-      return next.filter((k) => {
+      const filteredHistory = nextHistory.filter((k) => {
         const d = new Date(k + 'T00:00:00');
         return d >= weekAgo;
       });
+
+      return {
+        ...prev,
+        selectedMood: label,
+        claimedDate: todayKey,
+        history: filteredHistory
+      };
     });
 
     onCompleteXp(50);
   };
 
-  // weekly count: how many distinct day-keys in the last 7 days
   const getWeeklyCount = () => {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 6);
@@ -642,29 +617,22 @@ const StreakChallenge = ({ onCompleteXp }: { onCompleteXp: (xp: number) => void 
   const STORAGE_KEY = 'burnout-zero-streak';
   const todayKey = getLocalDateKey();
   const yesterdayKey = getYesterdayKey();
-  const [streakDays, setStreakDays] = useState(0);
-  const [lastClaimDate, setLastClaimDate] = useState<string | null>(null);
-  const [claimedDate, setClaimedDate] = useState<string | null>(null);
+
+  const [state, setState] = useState(() => readStorage<{ 
+    streakDays: number; 
+    lastClaimDate: string | null; 
+    claimedDate: string | null 
+  }>(STORAGE_KEY, {
+    streakDays: 0,
+    lastClaimDate: null,
+    claimedDate: null
+  }));
+
+  const { streakDays, lastClaimDate, claimedDate } = state;
 
   useEffect(() => {
-    const stored = readStorage<{ streakDays: number; lastClaimDate: string | null; claimedDate: string | null }>(STORAGE_KEY, {
-      streakDays: 0,
-      lastClaimDate: null,
-      claimedDate: null
-    });
-
-    setStreakDays(stored.streakDays);
-    setLastClaimDate(stored.lastClaimDate);
-    setClaimedDate(stored.claimedDate);
-  }, []);
-
-  useEffect(() => {
-    writeStorage(STORAGE_KEY, {
-      streakDays,
-      lastClaimDate,
-      claimedDate
-    });
-  }, [streakDays, lastClaimDate, claimedDate]);
+    writeStorage(STORAGE_KEY, state);
+  }, [state]);
 
   const claimedToday = claimedDate === todayKey;
 
@@ -674,9 +642,11 @@ const StreakChallenge = ({ onCompleteXp }: { onCompleteXp: (xp: number) => void 
     }
 
     const nextStreak = lastClaimDate === yesterdayKey ? streakDays + 1 : 1;
-    setStreakDays(nextStreak);
-    setLastClaimDate(todayKey);
-    setClaimedDate(todayKey);
+    setState({
+      streakDays: nextStreak,
+      lastClaimDate: todayKey,
+      claimedDate: todayKey
+    });
     onCompleteXp(10);
   };
 
@@ -695,32 +665,31 @@ const StreakChallenge = ({ onCompleteXp }: { onCompleteXp: (xp: number) => void 
 const WaterChallenge = ({ onGainXp }: { onGainXp: (xp: number) => void }) => {
   const SIP_ML = 200;
   const TARGET_ML = 3000;
-  const COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
-  const [totalMl, setTotalMl] = useState(0);
-  const [lastSipTime, setLastSipTime] = useState<number | null>(null);
-  const [waterXp, setWaterXp] = useState(0);
-  const [, setTick] = useState(0); // force update for countdown
-
+  const COOLDOWN_MS = 15 * 60 * 1000;
+  
+  const todayKey = getLocalDateKey();
   const STORAGE_KEY = 'burnout-zero-water-weekly';
 
-  useEffect(() => {
-    const t = setInterval(() => setTick((n) => n + 1), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  // load today's total from storage
-  useEffect(() => {
+  const [totalMl, setTotalMl] = useState(() => {
     const stored = readStorage<{ history: Record<string, number>; awardedDate?: string }>(STORAGE_KEY, {
       history: {},
       awardedDate: undefined
     });
-    const todayKey = getLocalDateKey();
-    const todays = stored.history?.[todayKey] ?? 0;
-    setTotalMl(todays);
+    return stored.history?.[todayKey] ?? 0;
+  });
+
+  const [lastSipTime, setLastSipTime] = useState<number | null>(null);
+  const [waterXp, setWaterXp] = useState(0);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+    return () => clearInterval(t);
   }, []);
 
-  const now = Date.now();
-  const elapsed = lastSipTime ? now - lastSipTime : Infinity;
+  const elapsed = lastSipTime ? currentTime - lastSipTime : Infinity;
   const remainingMs = Math.max(0, COOLDOWN_MS - elapsed);
 
   const canSip = totalMl < TARGET_ML && (lastSipTime === null || elapsed >= COOLDOWN_MS);
@@ -802,9 +771,6 @@ const WaterChallenge = ({ onGainXp }: { onGainXp: (xp: number) => void }) => {
 };
 
 export default function Jornada() {
-  
-
-  // Dados do usuário
   const user = {
     nome: 'João Silva',
     titulo: 'Curador Sereno',
@@ -821,24 +787,20 @@ export default function Jornada() {
   const [openRewards, setOpenRewards] = useState(false);
   const [openObtainedConquests, setOpenObtainedConquests] = useState(false);
 
-  // user tier per category: -1 means no tier yet; index corresponds to achievement rank (0 = first tier)
   const [userTiers, setUserTiers] = useState<{ consistency: number; hydration: number; breathing: number }>({ consistency: -1, hydration: -1, breathing: -1 });
 
-  // compute automatic tiers from stored data when opening rewards
   useEffect(() => {
     if (!openRewards) return;
 
-    // consistency: derive from streak storage
     const streakStore = readStorage<{ streakDays?: number }>('burnout-zero-streak', { streakDays: 0 });
     const streakDays = streakStore.streakDays ?? 0;
     let consistencyTier = -1;
-    if (streakDays >= 365) consistencyTier = 4; // Ano inteiro
-    else if (streakDays >= 90) consistencyTier = 3; // Trimestre
-    else if (streakDays >= 30) consistencyTier = 2; // Mês
-    else if (streakDays >= 7) consistencyTier = 1; // Semana
-    else if (streakDays >= 1) consistencyTier = 0; // Primeiro passo
+    if (streakDays >= 365) consistencyTier = 4; 
+    else if (streakDays >= 90) consistencyTier = 3; 
+    else if (streakDays >= 30) consistencyTier = 2; 
+    else if (streakDays >= 7) consistencyTier = 1;
+    else if (streakDays >= 1) consistencyTier = 0;
 
-    // hydration: derive from water history
     const waterStore = readStorage<{ history: Record<string, number> }>('burnout-zero-water-weekly', { history: {} });
     const hist = waterStore.history || {};
     const dayValues = Object.values(hist || {});
@@ -846,12 +808,11 @@ export default function Jornada() {
     const daysWith1L = dayValues.filter((v) => v >= 1000).length;
     const totalMl = dayValues.reduce((s, v) => s + v, 0);
     let hydrationTier = -1;
-    if (daysWith2L >= 30) hydrationTier = 3; // Hidratado profissional
-    else if (totalMl >= 50000) hydrationTier = 2; // Oceano pessoal
-    else if (daysWith2L >= 10) hydrationTier = 1; // Balde cheio
-    else if (daysWith1L >= 1) hydrationTier = 0; // Primeiro gole
+    if (daysWith2L >= 30) hydrationTier = 3;
+    else if (totalMl >= 50000) hydrationTier = 2;
+    else if (daysWith2L >= 10) hydrationTier = 1;
+    else if (daysWith1L >= 1) hydrationTier = 0;
 
-    // breathing: attempt to read a breaths store (not yet available)
     const breathStore = readStorage<{ cycles?: number }>('burnout-zero-breaths', { cycles: 0 });
     const cycles = breathStore.cycles ?? 0;
     let breathingTier = -1;
@@ -869,15 +830,11 @@ export default function Jornada() {
     setTotalXp((prev) => prev + xp);
   };
 
-  // (weekly challenge replaced by hydration challenge component below)
-
-  // Conquistas recentes (substituídas por itens do catálogo)
   const conquistas = [
     { titulo: 'Brasa Semanal', data: 'Hoje', icone: '' },
     { titulo: 'Faísca', data: '3 dias atrás', icone: '' }
   ];
 
-  // Achievement categories and tiers (ordered)
     const achievementCategories = [
     {
       key: 'consistency',
@@ -937,8 +894,8 @@ export default function Jornada() {
 
   const WeeklyHydrationChallenge = ({ onCompleteXp }: { onCompleteXp: (xp: number) => void }) => {
     const STORAGE_KEY = 'burnout-zero-water-weekly';
-    const TARGET_DAILY_ML = 2000; // 2L per day
-    const TARGET_DAYS = 5; // 5 days per week
+    const TARGET_DAILY_ML = 2000;
+    const TARGET_DAYS = 5;
     const [history, setHistory] = useState<Record<string, number>>({});
     const [awardedDate, setAwardedDate] = useState<string | undefined>(undefined);
 
@@ -961,7 +918,6 @@ export default function Jornada() {
     const weeklyCount = getLast7DaysCount();
 
     useEffect(() => {
-      // if achieved and not awarded recently, award XP
       if (weeklyCount >= TARGET_DAYS) {
         const lastAward = awardedDate ? new Date(awardedDate) : null;
         const weekAgo = new Date();

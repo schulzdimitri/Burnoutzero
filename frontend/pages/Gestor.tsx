@@ -1,4 +1,3 @@
-// frontend/pages/Gestor.tsx
 import { useState, useEffect } from 'react';
 import { 
   Box, Typography, Grid, Paper, Alert, Chip, Card, CardContent,
@@ -10,8 +9,23 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import api from '../services/api';
 
+interface Alerta {
+  data_avaliacao: string;
+  funcionario__username: string;
+}
+
+interface DashboardData {
+  alertas_recentes: Alerta[];
+  medias: {
+    media_estresse: number;
+    media_ansiedade: number;
+    media_burnout: number;
+    media_depressao: number;
+  };
+}
+
 export default function Gestor() {
-  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
 
   useEffect(() => {
     api.get('/gestor/team-overview/')
@@ -48,7 +62,7 @@ export default function Gestor() {
               <WarningIcon color="error" />
               <Typography variant="h6" color="error">Alertas da Equipe</Typography>
             </Box>
-            {alertas.map((alerta: any, index: number) => (
+            {alertas.map((alerta: Alerta, index: number) => (
               <Alert 
                 key={index} 
                 severity="warning" 
