@@ -1,4 +1,3 @@
-// frontend/pages/Psicologo.tsx
 import { useState, useEffect } from 'react';
 import { 
   Box, Typography, Grid, Paper, List, ListItem, ListItemText, 
@@ -9,11 +8,25 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import api from '../services/api';
 
+interface Paciente {
+  id: number;
+  funcionario: { username: string };
+  data: string;
+  status: string;
+}
+
+interface Insight {
+  id: number;
+  texto: string;
+  recomendacoes: string;
+  gerado_em: string;
+}
+
 export default function Psicologo() {
-  const [pacientes, setPacientes] = useState<any[]>([]);
-  const [insightsData, setInsightsData] = useState<any[]>([]);
+  const [pacientes, setPacientes] = useState<Paciente[]>([]);
+  const [insightsData, setInsightsData] = useState<Insight[]>([]);
   const [openValidar, setOpenValidar] = useState(false);
-  const [selectedInsight, setSelectedInsight] = useState<any>(null);
+  const [selectedInsight, setSelectedInsight] = useState<Insight | null>(null);
 
   const fetchData = async () => {
     try {
@@ -29,26 +42,33 @@ export default function Psicologo() {
   };
 
   useEffect(() => {
-    fetchData();
+    let isMounted = true;
+    const load = async () => {
+      if (isMounted) await fetchData();
+    };
+    void load();
+    return () => { isMounted = false; };
   }, []);
 
-  const handleValidarClick = (insight: any) => {
+  const handleValidarClick = (insight: Insight) => {
     setSelectedInsight(insight);
     setOpenValidar(true);
   };
 
   const handleSalvarValidacao = async () => {
+    if (!selectedInsight) return;
     try {
       await api.patch(`/insights/${selectedInsight.id}/validar/`, {
         texto: selectedInsight.texto,
         recomendacoes: selectedInsight.recomendacoes
       });
       setOpenValidar(false);
-      fetchData();
+      void fetchData();
     } catch (err) {
       console.error(err);
     }
   };
+
 
   return (
     <Box className="container">
@@ -105,7 +125,7 @@ export default function Psicologo() {
               <Typography variant="h6">Meus Pacientes</Typography>
             </Box>
             <List>
-              {pacientes.map((paciente: any, index: number) => (
+              {pacientes.map((paciente: Paciente, index: number) => (
                 <ListItem key={index} divider>
                   <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
                     {paciente.funcionario?.username?.[0] || 'P'}
@@ -130,7 +150,7 @@ export default function Psicologo() {
         <Grid size={{ xs: 12, md: 4 }}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Insights Gerados</Typography>
-            {insightsData.map((insight: any, index: number) => (
+            {insightsData.map((insight: Insight, index: number) => (
               <Card key={index} sx={{ mb: 2, bgcolor: 'info.light', color: 'white' }}>
                 <CardContent>
                   <Typography variant="subtitle2">Insight Automático</Typography>
@@ -157,7 +177,7 @@ export default function Psicologo() {
             fullWidth
             margin="normal"
             value={selectedInsight?.texto || ''}
-            onChange={(e) => setSelectedInsight({ ...selectedInsight, texto: e.target.value })}
+            onChange={(e) => selectedInsight && setSelectedInsight({ ...selectedInsight, texto: e.target.value })}
           />
           <TextField
             label="Recomendações"
@@ -166,9 +186,10 @@ export default function Psicologo() {
             fullWidth
             margin="normal"
             value={selectedInsight?.recomendacoes || ''}
-            onChange={(e) => setSelectedInsight({ ...selectedInsight, recomendacoes: e.target.value })}
+            onChange={(e) => selectedInsight && setSelectedInsight({ ...selectedInsight, recomendacoes: e.target.value })}
           />
         </DialogContent>
+
         <DialogActions>
           <Button onClick={() => setOpenValidar(false)}>Cancelar</Button>
           <Button variant="contained" onClick={handleSalvarValidacao}>
