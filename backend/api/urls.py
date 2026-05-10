@@ -8,7 +8,7 @@ from .views import (
     AvaliacaoViewSet, AcompanhamentoViewSet,
     AgendamentoViewSet,
     validar_insight, team_overview, minha_pontuacao
-    
+
 )
 
 router = DefaultRouter()
@@ -49,5 +49,6 @@ urlpatterns = [
     path('', include(router.urls)),
     path('insights/<int:pk>/validar/', validar_insight, name='validar_insight'),
     path('gestor/team-overview/', team_overview, name='team_overview'),
-    path('gamificacao/minha-pontuacao/', minha_pontuacao, name='minha_pontuacao'),
+    path('gamificacao/minha-pontuacao/',
+         minha_pontuacao, name='minha_pontuacao'),
 ]

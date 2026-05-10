@@ -59,6 +59,7 @@ class Agendamento(models.Model):
     status = models.CharField(max_length=20, default='agendado')
     criado_em = models.DateTimeField(auto_now_add=True)
 
+
 class Insight(models.Model):
     funcionario = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='insights'
