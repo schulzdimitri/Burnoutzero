@@ -57,3 +57,32 @@ class Agendamento(models.Model):
     data_hora = models.CharField(max_length=50)
     status = models.CharField(max_length=20, default='agendado')
     criado_em = models.DateTimeField(auto_now_add=True)
+
+class Insight(models.Model):
+    funcionario = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='insights'
+    )
+    avaliacao = models.ForeignKey(
+        Avaliacao, on_delete=models.CASCADE, related_name='insights'
+    )
+    texto = models.TextField()
+    recomendacoes = models.TextField()
+    gerado_em = models.DateTimeField(auto_now_add=True)
+    validado_por = models.ForeignKey(
+        User, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='insights_validados'
+    )
+    validado_em = models.DateTimeField(null=True, blank=True)
+
+
+class PontosGamificacao(models.Model):
+    MOTIVO_CHOICES = (
+        ('avaliacao_completa', 'Avaliação Completa'),
+        ('bonus_sequencia', 'Bônus de Sequência'),
+    )
+    funcionario = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='pontos'
+    )
+    pontos = models.IntegerField(default=0)
+    motivo = models.CharField(max_length=50, choices=MOTIVO_CHOICES)
+    conquistado_em = models.DateTimeField(auto_now_add=True)

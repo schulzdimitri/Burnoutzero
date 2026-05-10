@@ -4,9 +4,11 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView, TokenRefreshView
 )
 from .views import (
-    RegisterView, UserDetailView,
+    InsightViewSet, RegisterView, UserDetailView,
     AvaliacaoViewSet, AcompanhamentoViewSet,
-    AgendamentoViewSet
+    AgendamentoViewSet,
+    validar_insight, team_overview, minha_pontuacao
+    
 )
 
 router = DefaultRouter()
@@ -21,6 +23,7 @@ router.register(
     r'agendamentos', AgendamentoViewSet,
     basename='agendamento'
 )
+router.register(r'insights', InsightViewSet, basename='insight')
 
 urlpatterns = [
     path(
@@ -44,4 +47,7 @@ urlpatterns = [
         name='user_me'
     ),
     path('', include(router.urls)),
+    path('insights/<int:pk>/validar/', validar_insight, name='validar_insight'),
+    path('gestor/team-overview/', team_overview, name='team_overview'),
+    path('gamificacao/minha-pontuacao/', minha_pontuacao, name='minha_pontuacao'),
 ]
