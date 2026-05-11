@@ -4,7 +4,9 @@ from rest_framework import generics, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from .models import User, Avaliacao, Acompanhamento, Agendamento, Insight, PontosGamificacao
+from .models import (
+    User, Avaliacao, Acompanhamento, Agendamento, Insight, PontosGamificacao
+)
 from .serializers import (
     UserSerializer, UserCreateSerializer,
     AvaliacaoSerializer, AcompanhamentoSerializer,
@@ -99,7 +101,7 @@ class AgendamentoViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(funcionario=self.request.user)
 
-# ── Geração automática de insight por regra ───────────────────────────────────
+# ── Geração automática de insight por regra ──────────────────────────────
 
 
 def _gerar_insight(funcionario, avaliacao):
@@ -109,11 +111,13 @@ def _gerar_insight(funcionario, avaliacao):
     if avaliacao.nivel_risco == 'alto':
         linhas.append("Nível de risco elevado identificado na sua avaliação.")
         recs.append(
-            "Recomendamos buscar apoio com um psicólogo o quanto antes.")
+            "Recomendamos buscar apoio com um psicólogo o quanto antes."
+        )
     elif avaliacao.nivel_risco == 'medio':
         linhas.append("Sinais moderados de esgotamento detectados.")
         recs.append(
-            "Pratique pausas regulares e converse com alguém de confiança.")
+            "Pratique pausas regulares e converse com alguém de confiança."
+        )
     else:
         linhas.append("Seus indicadores estão dentro da faixa esperada.")
         recs.append("Continue mantendo seus hábitos saudáveis!")
@@ -121,7 +125,8 @@ def _gerar_insight(funcionario, avaliacao):
     if avaliacao.estresse > 15:
         linhas.append("Estresse acima do esperado.")
         recs.append(
-            "Considere atividades de descompressão como exercícios leves.")
+            "Considere atividades de descompressão como exercícios leves."
+        )
 
     Insight.objects.create(
         funcionario=funcionario,
@@ -136,7 +141,8 @@ def _gerar_insight(funcionario, avaliacao):
     )
 
 
-# ── Insights ──────────────────────────────────────────────────────────────────
+# ── Insights ─────────────────────────────────────────────────────────────
+
 
 class InsightViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -178,7 +184,8 @@ def validar_insight(request, pk):
     return Response({'message': 'Insight validado.'})
 
 
-# ── Dashboard Gestor ──────────────────────────────────────────────────────────
+# ── Dashboard Gestor ─────────────────────────────────────────────────────
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -194,11 +201,14 @@ def team_overview(request):
     )
     alertas = Avaliacao.objects.filter(
         funcionario__in=funcionarios, nivel_risco='alto'
-    ).values('funcionario__username', 'data_avaliacao').order_by('-data_avaliacao')[:10]
+    ).values(
+        'funcionario__username', 'data_avaliacao'
+    ).order_by('-data_avaliacao')[:10]
     return Response({'medias': agg, 'alertas_recentes': list(alertas)})
 
 
-# ── Gamificação ───────────────────────────────────────────────────────────────
+# ── Gamificação ──────────────────────────────────────────────────────────
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

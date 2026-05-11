@@ -2,16 +2,13 @@ import { render, screen } from '@testing-library/react';
 import { expect, test, describe, vi, beforeEach } from 'vitest';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
-// Simple mock components for our pages
 const MockLogin = () => <div>Login Page</div>;
 const MockFuncionario = () => <div>Funcionario Dashboard</div>;
 const MockPsicologo = () => <div>Psicologo Dashboard</div>;
 const MockGestor = () => <div>Gestor Dashboard</div>;
 
-// We will implement this component
 import ProtectedRoute from '../components/ProtectedRoute';
 
-// Mock localStorage
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
@@ -78,8 +75,6 @@ describe('Page Permission Access', () => {
     localStorage.setItem('user_role', 'funcionario');
     
     renderWithRouter(['/psicologo']);
-    // Should be redirected or show unauthorized. Let's assume redirection to home or login.
-    // For this test, let's say it redirects to login if unauthorized for that specific role.
     expect(screen.queryByText(/Psicologo Dashboard/i)).not.toBeInTheDocument();
   });
 
