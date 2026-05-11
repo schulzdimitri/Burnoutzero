@@ -86,61 +86,61 @@ const psicologos: Psicologo[] = [
   },
 ];
 
-type Avaliacao = {
+type Assessment = {
   id: number;
-  estresse: number;
-  ansiedade: number;
+  stress: number;
+  anxiety: number;
   burnout: number;
-  depressao: number;
-  nivel_risco: string;
-  data_avaliacao: string;
+  depression: number;
+  risk_level: string;
+  assessment_date: string;
 };
 
 type Insight = {
   id: number;
-  texto: string;
-  recomendacoes: string;
-  gerado_em: string;
+  text: string;
+  recommendations: string;
+  generated_at: string;
 };
 
-type Agendamento = {
+type Appointment = {
   id: number;
-  nome_psicologo: string;
-  data_hora: string;
+  psychologist_name: string;
+  date_time: string;
   status: string;
 };
 
-export default function Funcionario() {
+export default function Employee() {
   const [showChat, setShowChat] = useState(false);
   const [message, setMessage] = useState('');
   const [selectedPsicologo, setSelectedPsicologo] = useState<Psicologo | null>(null);
   const [selectedHorario, setSelectedHorario] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [openAvaliacaoDialog, setOpenAvaliacaoDialog] = useState(false);
-  const [novaAvaliacao, setNovaAvaliacao] = useState({ estresse: 0, ansiedade: 0, burnout: 0, depressao: 0 });
+  const [newAssessment, setNewAssessment] = useState({ stress: 0, anxiety: 0, burnout: 0, depression: 0 });
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: SnackbarSeverity }>({
     open: false,
     message: '',
     severity: 'success',
   });
 
-  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [insightsData, setInsightsData] = useState<Insight[]>([]);
   const [pontos, setPontos] = useState(0);
-  const [proximasConsultas, setProximasConsultas] = useState<Agendamento[]>([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
 
   const fetchData = async () => {
     try {
       const [avRes, inRes, ptsRes, agRes] = await Promise.all([
-        api.get('/avaliacoes/'),
+        api.get('/assessments/'),
         api.get('/insights/'),
-        api.get('/gamificacao/minha-pontuacao/'),
-        api.get('/agendamentos/')
+        api.get('/gamification/my-points/'),
+        api.get('/appointments/')
       ]);
-      setAvaliacoes(avRes.data);
+      setAssessments(avRes.data);
       setInsightsData(inRes.data);
       setPontos(ptsRes.data.total_pontos || 0);
-      setProximasConsultas(agRes.data);
+      setUpcomingAppointments(agRes.data);
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
     }
@@ -157,7 +157,7 @@ export default function Funcionario() {
 
   const handleEnviarAvaliacao = async () => {
     try {
-      await api.post('/avaliacoes/', novaAvaliacao);
+      await api.post('/assessments/', newAssessment);
       setOpenAvaliacaoDialog(false);
       setSnackbar({ open: true, message: 'Avaliação enviada com sucesso!', severity: 'success' });
       fetchData();
@@ -166,13 +166,13 @@ export default function Funcionario() {
     }
   };
   
-  const ultimaAvaliacao = avaliacoes.length > 0 ? avaliacoes[avaliacoes.length - 1] : null;
+  const lastAssessment = assessments.length > 0 ? assessments[assessments.length - 1] : null;
 
-  const metrics = ultimaAvaliacao ? [
-    { name: 'Estresse', value: ultimaAvaliacao.estresse, status: ultimaAvaliacao.estresse > 50 ? 'atencao' : 'normal', color: '#FFB347' },
-    { name: 'Ansiedade', value: ultimaAvaliacao.ansiedade, status: ultimaAvaliacao.ansiedade > 50 ? 'atencao' : 'normal', color: '#FFB347' },
-    { name: 'Burnout', value: ultimaAvaliacao.burnout, status: ultimaAvaliacao.burnout > 50 ? 'atencao' : 'normal', color: '#4CAF50' },
-    { name: 'Depressão', value: ultimaAvaliacao.depressao, status: ultimaAvaliacao.depressao > 50 ? 'atencao' : 'normal', color: '#4CAF50' },
+  const metrics = lastAssessment ? [
+    { name: 'Estresse', value: lastAssessment.stress, status: lastAssessment.stress > 50 ? 'atencao' : 'normal', color: '#FFB347' },
+    { name: 'Ansiedade', value: lastAssessment.anxiety, status: lastAssessment.anxiety > 50 ? 'atencao' : 'normal', color: '#FFB347' },
+    { name: 'Burnout', value: lastAssessment.burnout, status: lastAssessment.burnout > 50 ? 'atencao' : 'normal', color: '#4CAF50' },
+    { name: 'Depressão', value: lastAssessment.depression, status: lastAssessment.depression > 50 ? 'atencao' : 'normal', color: '#4CAF50' },
   ] : [
     { name: 'Estresse', value: 0, status: 'normal', color: '#4CAF50' },
     { name: 'Ansiedade', value: 0, status: 'normal', color: '#4CAF50' },
@@ -181,8 +181,8 @@ export default function Funcionario() {
   ];
 
   const insights = insightsData.map(i => ({
-    date: new Date(i.gerado_em).toLocaleDateString(),
-    text: i.texto,
+    date: new Date(i.generated_at).toLocaleDateString(),
+    text: i.text,
     type: 'info'
   }));
 
@@ -198,9 +198,9 @@ export default function Funcionario() {
 
   const handleConfirmarAgendamento = async () => {
     try {
-      await api.post('/agendamentos/', {
-        nome_psicologo: selectedPsicologo?.nome,
-        data_hora: selectedHorario
+      await api.post('/appointments/', {
+        psychologist_name: selectedPsicologo?.nome,
+        date_time: selectedHorario
       });
       setOpenDialog(false);
       setSnackbar({
@@ -471,14 +471,14 @@ export default function Funcionario() {
                     Proximas Consultas
                   </Typography>
 
-                  {proximasConsultas.length > 0 ? (
-                    proximasConsultas.map((consulta) => (
+                  {upcomingAppointments.length > 0 ? (
+                    upcomingAppointments.map((consulta) => (
                       <Box key={consulta.id} sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
                         <CalendarMonthIcon color="primary" />
                         <Box sx={{ flex: 1 }}>
-                          <Typography variant="subtitle2">{consulta.nome_psicologo}</Typography>
+                          <Typography variant="subtitle2">{consulta.psychologist_name}</Typography>
                           <Typography variant="caption" color="text.secondary">
-                            Data e Hora: {consulta.data_hora} | Status: {consulta.status}
+                            Data e Hora: {consulta.date_time} | Status: {consulta.status}
                           </Typography>
                         </Box>
                       </Box>
@@ -588,32 +588,32 @@ export default function Funcionario() {
             type="number"
             fullWidth
             margin="normal"
-            value={novaAvaliacao.estresse}
-            onChange={(e) => setNovaAvaliacao({ ...novaAvaliacao, estresse: Number(e.target.value) })}
+            value={newAssessment.estresse}
+            onChange={(e) => setNewAssessment({ ...newAssessment, estresse: Number(e.target.value) })}
           />
           <TextField
             label="Ansiedade"
             type="number"
             fullWidth
             margin="normal"
-            value={novaAvaliacao.ansiedade}
-            onChange={(e) => setNovaAvaliacao({ ...novaAvaliacao, ansiedade: Number(e.target.value) })}
+            value={newAssessment.ansiedade}
+            onChange={(e) => setNewAssessment({ ...newAssessment, ansiedade: Number(e.target.value) })}
           />
           <TextField
             label="Burnout"
             type="number"
             fullWidth
             margin="normal"
-            value={novaAvaliacao.burnout}
-            onChange={(e) => setNovaAvaliacao({ ...novaAvaliacao, burnout: Number(e.target.value) })}
+            value={newAssessment.burnout}
+            onChange={(e) => setNewAssessment({ ...newAssessment, burnout: Number(e.target.value) })}
           />
           <TextField
             label="Depressão"
             type="number"
             fullWidth
             margin="normal"
-            value={novaAvaliacao.depressao}
-            onChange={(e) => setNovaAvaliacao({ ...novaAvaliacao, depressao: Number(e.target.value) })}
+            value={newAssessment.depressao}
+            onChange={(e) => setNewAssessment({ ...newAssessment, depressao: Number(e.target.value) })}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>

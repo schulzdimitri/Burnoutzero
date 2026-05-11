@@ -33,9 +33,9 @@ export default function Header() {
 
   const menuItems = [
     { label: 'Início', path: '/' },
-    { label: 'Funcionário', path: '/funcionario' },
-    { label: 'Psicólogo', path: '/psicologo' },
-    { label: 'Gestor', path: '/gestor' },
+    { label: 'Funcionário', path: '/employee' },
+    { label: 'Psicólogo', path: '/psychologist' },
+    { label: 'Gestor', path: '/manager' },
   ];
 
   return (

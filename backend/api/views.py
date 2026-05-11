@@ -1,14 +1,15 @@
-from django.utils import timezone
-from django.db.models import Avg
 from rest_framework import generics, viewsets
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from .models import User, Avaliacao, Acompanhamento, Agendamento, Insight, PontosGamificacao
+from django.db.models import Avg
+from django.utils import timezone
+from .models import User, Assessment, FollowUp, Appointment, Insight, GamificationPoints
+
 from .serializers import (
     UserSerializer, UserCreateSerializer,
-    AvaliacaoSerializer, AcompanhamentoSerializer,
-    AgendamentoSerializer
+    AssessmentSerializer, FollowUpSerializer,
+    AppointmentSerializer
 )
 
 
@@ -27,112 +28,109 @@ class UserDetailView(generics.RetrieveAPIView):
         return self.request.user
 
 
-class AvaliacaoViewSet(viewsets.ModelViewSet):
-    serializer_class = AvaliacaoSerializer
+class AssessmentViewSet(viewsets.ModelViewSet):
+    serializer_class = AssessmentSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == 'funcionario':
-            return Avaliacao.objects.filter(funcionario=user)
-        elif user.role == 'gestor':
-            funcionarios = User.objects.filter(
-                departamento=user.departamento
+        if user.role == 'employee':
+            return Assessment.objects.filter(employee=user)
+        elif user.role == 'manager':
+            employees = User.objects.filter(
+                department=user.department
             )
-            return Avaliacao.objects.filter(
-                funcionario__in=funcionarios
+            return Assessment.objects.filter(
+                employee__in=employees
             )
         else:
-            return Avaliacao.objects.all()
+            return Assessment.objects.all()
 
     def perform_create(self, serializer):
         data = serializer.validated_data
         total = (
-            data.get('estresse', 0)
-            + data.get('ansiedade', 0)
+            data.get('stress', 0)
+            + data.get('anxiety', 0)
             + data.get('burnout', 0)
-            + data.get('depressao', 0)
+            + data.get('depression', 0)
         )
 
         if total >= 50:
-            risco = 'alto'
+            risk = 'high'
         elif total >= 20:
-            risco = 'medio'
+            risk = 'medium'
         else:
-            risco = 'baixo'
+            risk = 'low'
 
-        avaliacao = serializer.save(
-            funcionario=self.request.user, nivel_risco=risco
+        assessment = serializer.save(
+            employee=self.request.user, risk_level=risk
         )
 
-        _gerar_insight(self.request.user, avaliacao)
+        _generate_insight(self.request.user, assessment)
 
 
-class AcompanhamentoViewSet(viewsets.ModelViewSet):
-    serializer_class = AcompanhamentoSerializer
+class FollowUpViewSet(viewsets.ModelViewSet):
+    serializer_class = FollowUpSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == 'psicologo':
-            return Acompanhamento.objects.filter(psicologo=user)
-        elif user.role == 'funcionario':
-            return Acompanhamento.objects.filter(
-                funcionario=user
+        if user.role == 'psychologist':
+            return FollowUp.objects.filter(psychologist=user)
+        elif user.role == 'employee':
+            return FollowUp.objects.filter(
+                employee=user
             )
-        return Acompanhamento.objects.none()
+        return FollowUp.objects.none()
 
     def perform_create(self, serializer):
-        serializer.save(psicologo=self.request.user)
+        serializer.save(psychologist=self.request.user)
 
 
-class AgendamentoViewSet(viewsets.ModelViewSet):
-    serializer_class = AgendamentoSerializer
+class AppointmentViewSet(viewsets.ModelViewSet):
+    serializer_class = AppointmentSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == 'funcionario':
-            return Agendamento.objects.filter(funcionario=user)
-        return Agendamento.objects.none()
+        if user.role == 'employee':
+            return Appointment.objects.filter(employee=user)
+        return Appointment.objects.none()
 
     def perform_create(self, serializer):
-        serializer.save(funcionario=self.request.user)
+        serializer.save(employee=self.request.user)
+
 
 # ── Geração automática de insight por regra ───────────────────────────────────
 
-
-def _gerar_insight(funcionario, avaliacao):
-    linhas = []
+def _generate_insight(employee, assessment):
+    lines = []
     recs = []
 
-    if avaliacao.nivel_risco == 'alto':
-        linhas.append("Nível de risco elevado identificado na sua avaliação.")
-        recs.append(
-            "Recomendamos buscar apoio com um psicólogo o quanto antes.")
-    elif avaliacao.nivel_risco == 'medio':
-        linhas.append("Sinais moderados de esgotamento detectados.")
-        recs.append(
-            "Pratique pausas regulares e converse com alguém de confiança.")
+    if assessment.risk_level == 'high':
+        lines.append("Nível de risco elevado identificado na sua avaliação.")
+        recs.append("Recomendamos buscar apoio com um psicólogo o quanto antes.")
+    elif assessment.risk_level == 'medium':
+        lines.append("Sinais moderados de esgotamento detectados.")
+        recs.append("Pratique pausas regulares e converse com alguém de confiança.")
     else:
-        linhas.append("Seus indicadores estão dentro da faixa esperada.")
+        lines.append("Seus indicadores estão dentro da faixa esperada.")
         recs.append("Continue mantendo seus hábitos saudáveis!")
 
-    if avaliacao.estresse > 15:
-        linhas.append("Estresse acima do esperado.")
-        recs.append(
-            "Considere atividades de descompressão como exercícios leves.")
+    if assessment.stress > 15:
+        lines.append("Estresse acima do esperado.")
+        recs.append("Considere atividades de descompressão como exercícios leves.")
 
     Insight.objects.create(
-        funcionario=funcionario,
-        avaliacao=avaliacao,
-        texto=" ".join(linhas),
-        recomendacoes=" ".join(recs),
+        employee=employee,
+        assessment=assessment,
+        text=" ".join(lines),
+        recommendations=" ".join(recs),
     )
-    PontosGamificacao.objects.create(
-        funcionario=funcionario,
-        pontos=10,
-        motivo='avaliacao_completa',
+    GamificationPoints.objects.create(
+        employee=employee,
+        points=10,
+        reason='assessment_complete',
     )
 
 
@@ -143,10 +141,10 @@ class InsightViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == 'funcionario':
-            return Insight.objects.filter(funcionario=user)
-        elif user.role == 'psicologo':
-            return Insight.objects.filter(validado_por=None)
+        if user.role == 'employee':
+            return Insight.objects.filter(employee=user)
+        elif user.role == 'psychologist':
+            return Insight.objects.filter(validated_by=None)
         return Insight.objects.all()
 
     def get_serializer_class(self):
@@ -161,19 +159,19 @@ class InsightViewSet(viewsets.ReadOnlyModelViewSet):
 
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
-def validar_insight(request, pk):
-    if request.user.role != 'psicologo':
+def validate_insight(request, pk):
+    if request.user.role != 'psychologist':
         return Response({'error': 'Acesso negado.'}, status=403)
     try:
         insight = Insight.objects.get(pk=pk)
     except Insight.DoesNotExist:
         return Response({'error': 'Insight não encontrado.'}, status=404)
-    if 'texto' in request.data:
-        insight.texto = request.data['texto']
-    if 'recomendacoes' in request.data:
-        insight.recomendacoes = request.data['recomendacoes']
-    insight.validado_por = request.user
-    insight.validado_em = timezone.now()
+    if 'text' in request.data:
+        insight.text = request.data['text']
+    if 'recommendations' in request.data:
+        insight.recommendations = request.data['recommendations']
+    insight.validated_by = request.user
+    insight.validated_at = timezone.now()
     insight.save()
     return Response({'message': 'Insight validado.'})
 
@@ -183,27 +181,27 @@ def validar_insight(request, pk):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def team_overview(request):
-    if request.user.role != 'gestor':
+    if request.user.role != 'manager':
         return Response({'error': 'Acesso negado.'}, status=403)
-    funcionarios = User.objects.filter(departamento=request.user.departamento)
-    agg = Avaliacao.objects.filter(funcionario__in=funcionarios).aggregate(
-        media_estresse=Avg('estresse'),
-        media_ansiedade=Avg('ansiedade'),
-        media_burnout=Avg('burnout'),
-        media_depressao=Avg('depressao'),
+    employees = User.objects.filter(department=request.user.department)
+    agg = Assessment.objects.filter(employee__in=employees).aggregate(
+        avg_stress=Avg('stress'),
+        avg_anxiety=Avg('anxiety'),
+        avg_burnout=Avg('burnout'),
+        avg_depression=Avg('depression'),
     )
-    alertas = Avaliacao.objects.filter(
-        funcionario__in=funcionarios, nivel_risco='alto'
-    ).values('funcionario__username', 'data_avaliacao').order_by('-data_avaliacao')[:10]
-    return Response({'medias': agg, 'alertas_recentes': list(alertas)})
+    alerts = Assessment.objects.filter(
+        employee__in=employees, risk_level='high'
+    ).values('employee__username', 'assessment_date').order_by('-assessment_date')[:10]
+    return Response({'averages': agg, 'recent_alerts': list(alerts)})
 
 
 # ── Gamificação ───────────────────────────────────────────────────────────────
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def minha_pontuacao(request):
-    pontos = PontosGamificacao.objects.filter(funcionario=request.user)
-    total = sum(p.pontos for p in pontos)
-    historico = list(pontos.values('pontos', 'motivo', 'conquistado_em'))
-    return Response({'total_pontos': total, 'historico': historico})
+def my_points(request):
+    points = GamificationPoints.objects.filter(employee=request.user)
+    total = sum(p.points for p in points)
+    history = list(points.values('points', 'reason', 'earned_at'))
+    return Response({'total_points': total, 'history': history})

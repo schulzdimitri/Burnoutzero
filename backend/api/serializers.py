@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Avaliacao, Acompanhamento, Agendamento
+from .models import User, Assessment, FollowUp, Appointment
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -8,7 +8,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email',
             'first_name', 'last_name',
-            'role', 'departamento'
+            'role', 'department'
         ]
 
 
@@ -18,7 +18,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'password', 'email',
             'first_name', 'last_name',
-            'role', 'departamento'
+            'role', 'department'
         ]
         extra_kwargs = {'password': {'write_only': True}}
 
@@ -27,24 +27,24 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return user
 
 
-class AvaliacaoSerializer(serializers.ModelSerializer):
+class AssessmentSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Avaliacao
+        model = Assessment
         fields = '__all__'
         read_only_fields = [
-            'funcionario', 'data_avaliacao', 'nivel_risco'
+            'employee', 'assessment_date', 'risk_level'
         ]
 
 
-class AcompanhamentoSerializer(serializers.ModelSerializer):
+class FollowUpSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Acompanhamento
+        model = FollowUp
         fields = '__all__'
-        read_only_fields = ['psicologo']
+        read_only_fields = ['psychologist']
 
 
-class AgendamentoSerializer(serializers.ModelSerializer):
+class AppointmentSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Agendamento
+        model = Appointment
         fields = '__all__'
-        read_only_fields = ['funcionario']
+        read_only_fields = ['employee']

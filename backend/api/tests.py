@@ -2,82 +2,81 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from api.models import Avaliacao, Insight
+from api.models import Assessment, Insight
 
 User = get_user_model()
 
 
 class ApiViewsTestCase(APITestCase):
     def setUp(self):
-        self.funcionario = User.objects.create_user(
-            username='func', password='password', role='funcionario', departamento='TI'
+        self.employee = User.objects.create_user(
+            username='func', password='password', role='employee', department='TI'
         )
-        self.gestor = User.objects.create_user(
-            username='gestor', password='password', role='gestor', departamento='TI'
+        self.manager = User.objects.create_user(
+            username='gestor', password='password', role='manager', department='TI'
         )
-        self.psicologo = User.objects.create_user(
-            username='psico', password='password', role='psicologo', departamento='Saude'
+        self.psychologist = User.objects.create_user(
+            username='psico', password='password', role='psychologist', department='Saude'
         )
 
-    def test_avaliacao_create_and_gamificacao(self):
-        self.client.force_authenticate(user=self.funcionario)
+    def test_assessment_create_and_gamification(self):
+        self.client.force_authenticate(user=self.employee)
         data = {
-            'estresse': 60,
-            'ansiedade': 20,
+            'stress': 60,
+            'anxiety': 20,
             'burnout': 10,
-            'depressao': 5,
+            'depression': 5,
         }
-        # Cobre AvaliacaoViewSet e _gerar_insight
-        response = self.client.post(reverse('avaliacao-list'), data)
+        response = self.client.post(reverse('assessment-list'), data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        # Cobre minha_pontuacao
-        response2 = self.client.get(reverse('minha_pontuacao'))
+        response2 = self.client.get(reverse('my_points'))
         self.assertEqual(response2.status_code, status.HTTP_200_OK)
-        self.assertEqual(response2.data['total_pontos'], 10)
+        self.assertEqual(response2.data['total_points'], 10)
 
-        # Cobre InsightViewSet (funcionario)
         response3 = self.client.get(reverse('insight-list'))
         self.assertEqual(response3.status_code, status.HTTP_200_OK)
 
     def test_team_overview(self):
-        self.client.force_authenticate(user=self.gestor)
+        self.client.force_authenticate(user=self.manager)
         response = self.client.get(reverse('team_overview'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        # Test access denial
-        self.client.force_authenticate(user=self.funcionario)
+        self.client.force_authenticate(user=self.employee)
         response2 = self.client.get(reverse('team_overview'))
         self.assertEqual(response2.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_acompanhamento_and_insight_psicologo(self):
-        # Setup insight para testar a rota validar_insight
-        avaliacao = Avaliacao.objects.create(
-            funcionario=self.funcionario, nivel_risco='alto')
+    def test_follow_up_and_insight_psychologist(self):
+        assessment = Assessment.objects.create(
+            employee=self.employee, risk_level='high'
+        )
         insight = Insight.objects.create(
-            funcionario=self.funcionario, avaliacao=avaliacao, texto="T", recomendacoes="R")
+            employee=self.employee, assessment=assessment,
+            text="T", recommendations="R"
+        )
 
-        self.client.force_authenticate(user=self.psicologo)
-        response = self.client.patch(reverse('validar_insight', args=[insight.id]), {
-            'texto': 'Novo texto'
-        })
+        self.client.force_authenticate(user=self.psychologist)
+        response = self.client.patch(
+            reverse('validate_insight', args=[insight.id]), {
+                'text': 'Novo texto'
+            }
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         response2 = self.client.get(reverse('insight-list'))
         self.assertEqual(response2.status_code, status.HTTP_200_OK)
 
-        # Cobre Acompanhamento
-        response3 = self.client.post(reverse('acompanhamento-list'), {
-            'funcionario': self.funcionario.id,
-            'status': 'ativo',
-            'anotacoes_privadas': 'Anotações'
+        response3 = self.client.post(reverse('follow-up-list'), {
+            'employee': self.employee.id,
+            'status': 'active',
+            'private_notes': 'Anotações'
         })
         self.assertEqual(response3.status_code, status.HTTP_201_CREATED)
 
-    def test_agendamento(self):
-        self.client.force_authenticate(user=self.funcionario)
-        response = self.client.post(reverse('agendamento-list'), {
-            'nome_psicologo': 'Dra. Ana',
-            'data_hora': '10:00'
+    def test_appointment(self):
+        self.client.force_authenticate(user=self.employee)
+        response = self.client.post(reverse('appointment-list'), {
+            'psychologist_name': 'Dra. Ana',
+            'date_time': '10:00'
         })
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)

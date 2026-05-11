@@ -7,10 +7,10 @@ import Footer from './components/Footer';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
-import Cadastro from './pages/Cadastro';
-import Funcionario from './pages/Funcionario';
-import Psicologo from './pages/Psicologo';
-import Gestor from './pages/Gestor';
+import Register from './pages/Register';
+import Employee from './pages/Employee';
+import Psychologist from './pages/Psychologist';
+import Manager from './pages/Manager';
 import './index.css';
 
 function App() {
@@ -23,10 +23,10 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/cadastro" element={<Cadastro />} />
-            <Route path="/funcionario" element={<Funcionario />} />
-            <Route path="/psicologo" element={<Psicologo />} />
-            <Route path="/gestor" element={<Gestor />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/employee" element={<Employee />} />
+            <Route path="/psychologist" element={<Psychologist />} />
+            <Route path="/manager" element={<Manager />} />
           </Routes>
         </main>
         <Footer />

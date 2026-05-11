@@ -5,23 +5,22 @@ from rest_framework_simplejwt.views import (
 )
 from .views import (
     InsightViewSet, RegisterView, UserDetailView,
-    AvaliacaoViewSet, AcompanhamentoViewSet,
-    AgendamentoViewSet,
-    validar_insight, team_overview, minha_pontuacao
-
+    AssessmentViewSet, FollowUpViewSet,
+    AppointmentViewSet,
+    validate_insight, team_overview, my_points
 )
 
 router = DefaultRouter()
 router.register(
-    r'avaliacoes', AvaliacaoViewSet, basename='avaliacao'
+    r'assessments', AssessmentViewSet, basename='assessment'
 )
 router.register(
-    r'acompanhamentos', AcompanhamentoViewSet,
-    basename='acompanhamento'
+    r'follow-ups', FollowUpViewSet,
+    basename='follow-up'
 )
 router.register(
-    r'agendamentos', AgendamentoViewSet,
-    basename='agendamento'
+    r'appointments', AppointmentViewSet,
+    basename='appointment'
 )
 router.register(r'insights', InsightViewSet, basename='insight')
 
@@ -47,8 +46,7 @@ urlpatterns = [
         name='user_me'
     ),
     path('', include(router.urls)),
-    path('insights/<int:pk>/validar/', validar_insight, name='validar_insight'),
-    path('gestor/team-overview/', team_overview, name='team_overview'),
-    path('gamificacao/minha-pontuacao/',
-         minha_pontuacao, name='minha_pontuacao'),
+    path('insights/<int:pk>/validate/', validate_insight, name='validate_insight'),
+    path('manager/team-overview/', team_overview, name='team_overview'),
+    path('gamification/my-points/', my_points, name='my_points'),
 ]

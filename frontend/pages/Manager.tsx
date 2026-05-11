@@ -9,36 +9,36 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import api from '../services/api';
 
-interface Alerta {
-  data_avaliacao: string;
-  funcionario__username: string;
+interface AppAlert {
+  assessment_date: string;
+  employee__username: string;
 }
 
 interface DashboardData {
-  alertas_recentes: Alerta[];
-  medias: {
-    media_estresse: number;
-    media_ansiedade: number;
-    media_burnout: number;
-    media_depressao: number;
+  recent_alerts: AppAlert[];
+  averages: {
+    avg_stress: number;
+    avg_anxiety: number;
+    avg_burnout: number;
+    avg_depression: number;
   };
 }
 
-export default function Gestor() {
+export default function Manager() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
 
   useEffect(() => {
-    api.get('/gestor/team-overview/')
+    api.get('/manager/team-overview/')
       .then(res => setDashboardData(res.data))
       .catch(err => console.error(err));
   }, []);
 
-  const alertas = dashboardData?.alertas_recentes || [];
-  const medias = dashboardData?.medias || {
-    media_estresse: 0,
-    media_ansiedade: 0,
-    media_burnout: 0,
-    media_depressao: 0
+  const alerts = dashboardData?.recent_alerts || [];
+  const averages = dashboardData?.averages || {
+    avg_stress: 0,
+    avg_anxiety: 0,
+    avg_burnout: 0,
+    avg_depression: 0
   };
 
   const metricasSetores = [
@@ -62,20 +62,20 @@ export default function Gestor() {
               <WarningIcon color="error" />
               <Typography variant="h6" color="error">Alertas da Equipe</Typography>
             </Box>
-            {alertas.map((alerta: Alerta, index: number) => (
+            {alerts.map((alerta: AppAlert, index: number) => (
               <Alert 
                 key={index} 
                 severity="warning" 
                 sx={{ mb: 1 }}
                 action={
                   <Chip 
-                    label={new Date(alerta.data_avaliacao).toLocaleDateString()} 
+                    label={new Date(alerta.assessment_date).toLocaleDateString()} 
                     size="small" 
                     color="warning"
                   />
                 }
               >
-                <strong>Usuário:</strong> {alerta.funcionario__username} - Avaliação de alto risco identificada.
+                <strong>Usuário:</strong> {alerta.employee__username} - Avaliação de alto risco identificada.
               </Alert>
             ))}
           </Paper>
@@ -96,7 +96,7 @@ export default function Gestor() {
           <Card>
             <CardContent sx={{ textAlign: 'center' }}>
               <TrendingUpIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
-              <Typography variant="h4">{medias.media_estresse?.toFixed(1) || 0}</Typography>
+              <Typography variant="h4">{averages.avg_stress?.toFixed(1) || 0}</Typography>
               <Typography color="text.secondary">Estresse Médio</Typography>
             </CardContent>
           </Card>
@@ -106,7 +106,7 @@ export default function Gestor() {
           <Card>
             <CardContent sx={{ textAlign: 'center' }}>
               <WarningIcon sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
-              <Typography variant="h4">{alertas.length}</Typography>
+              <Typography variant="h4">{alerts.length}</Typography>
               <Typography color="text.secondary">Alertas ativos</Typography>
             </CardContent>
           </Card>
@@ -116,7 +116,7 @@ export default function Gestor() {
           <Card>
             <CardContent sx={{ textAlign: 'center' }}>
               <AssessmentIcon sx={{ fontSize: 40, color: 'secondary.main', mb: 1 }} />
-              <Typography variant="h4">{medias.media_burnout?.toFixed(1) || 0}</Typography>
+              <Typography variant="h4">{averages.avg_burnout?.toFixed(1) || 0}</Typography>
               <Typography color="text.secondary">Burnout Médio</Typography>
             </CardContent>
           </Card>
