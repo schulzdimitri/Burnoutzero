@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { expect, test, describe, vi, beforeEach } from 'vitest';
-import Home from './Home';
+import Home from '../pages/Home';
 
 // Complete localStorage Mock
 const localStorageMock = (() => {
