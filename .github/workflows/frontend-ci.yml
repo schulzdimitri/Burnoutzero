@@ -44,12 +44,12 @@ jobs:
 
       - run: npm ci
 
-      - run: npm test -- --coverage
+      - run: npm test
 
   build:
-    name: "Frontend · Build"
+    name: "Build"
     runs-on: ubuntu-latest
-    needs: lint
+    needs: test
     steps:
       - uses: actions/checkout@v4
 
