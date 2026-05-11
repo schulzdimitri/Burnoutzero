@@ -176,8 +176,8 @@ export default function Psychologist() {
             rows={3}
             fullWidth
             margin="normal"
-            value={selectedInsight?.texto || ''}
-            onChange={(e) => selectedInsight && setSelectedInsight({ ...selectedInsight, texto: e.target.value })}
+            value={selectedInsight?.text || ''}
+            onChange={(e) => selectedInsight && setSelectedInsight({ ...selectedInsight, text: e.target.value })}
           />
           <TextField
             label="Recomendações"
@@ -185,8 +185,8 @@ export default function Psychologist() {
             rows={3}
             fullWidth
             margin="normal"
-            value={selectedInsight?.recomendacoes || ''}
-            onChange={(e) => selectedInsight && setSelectedInsight({ ...selectedInsight, recomendacoes: e.target.value })}
+            value={selectedInsight?.recommendations || ''}
+            onChange={(e) => selectedInsight && setSelectedInsight({ ...selectedInsight, recommendations: e.target.value })}
           />
         </DialogContent>
 

@@ -588,16 +588,16 @@ export default function Employee() {
             type="number"
             fullWidth
             margin="normal"
-            value={newAssessment.estresse}
-            onChange={(e) => setNewAssessment({ ...newAssessment, estresse: Number(e.target.value) })}
+            value={newAssessment.stress}
+            onChange={(e) => setNewAssessment({ ...newAssessment, stress: Number(e.target.value) })}
           />
           <TextField
             label="Ansiedade"
             type="number"
             fullWidth
             margin="normal"
-            value={newAssessment.ansiedade}
-            onChange={(e) => setNewAssessment({ ...newAssessment, ansiedade: Number(e.target.value) })}
+            value={newAssessment.anxiety}
+            onChange={(e) => setNewAssessment({ ...newAssessment, anxiety: Number(e.target.value) })}
           />
           <TextField
             label="Burnout"
@@ -612,8 +612,8 @@ export default function Employee() {
             type="number"
             fullWidth
             margin="normal"
-            value={newAssessment.depressao}
-            onChange={(e) => setNewAssessment({ ...newAssessment, depressao: Number(e.target.value) })}
+            value={newAssessment.depression}
+            onChange={(e) => setNewAssessment({ ...newAssessment, depression: Number(e.target.value) })}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
