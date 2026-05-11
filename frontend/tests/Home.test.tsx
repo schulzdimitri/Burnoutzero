@@ -2,7 +2,6 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { expect, test, describe, vi, beforeEach } from 'vitest';
 import Home from '../pages/Home';
 
-// Complete localStorage Mock
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
@@ -42,13 +41,8 @@ describe('Home (Jornada) Interactive Components', () => {
       
       const drinkButton = screen.getByRole('button', { name: /Beber 200ml/i });
       
-      // Initial state (assuming 0L / 3L)
       expect(screen.getByText(/0L \/ 3L/i)).toBeInTheDocument();
-      
-      // Click to drink 200ml
       fireEvent.click(drinkButton);
-      
-      // Should show 0.2L / 3L
       expect(screen.getByText(/0.2L \/ 3L/i)).toBeInTheDocument();
     });
 
@@ -58,7 +52,6 @@ describe('Home (Jornada) Interactive Components', () => {
       
       fireEvent.click(drinkButton);
       
-      // Should show cooldown message (Próximo gole em...)
       expect(screen.getByText(/Próximo gole em/i)).toBeInTheDocument();
       expect(drinkButton).toBeDisabled();
     });
@@ -71,9 +64,7 @@ describe('Home (Jornada) Interactive Components', () => {
       const startButton = screen.getByRole('button', { name: 'Iniciar' });
       fireEvent.click(startButton);
       
-      // Should show the instruction for the first phase
       expect(screen.getByText(/Inspire contando até 4/i)).toBeInTheDocument();
-      // Should show Pause button
       expect(screen.getByRole('button', { name: /Pausar/i })).toBeInTheDocument();
     });
 
@@ -83,26 +74,18 @@ describe('Home (Jornada) Interactive Components', () => {
       const startButton = screen.getByRole('button', { name: 'Iniciar' });
       fireEvent.click(startButton);
       
-      // 1. Inhale (starts immediately)
       expect(screen.getByText(/Inspire contando até 4/i)).toBeInTheDocument();
-      
-      // Fast forward 4 seconds to reach "Hold"
       act(() => {
         vi.advanceTimersByTime(4000);
       });
       expect(screen.getByText(/Segure a respiração por 3 segundos/i)).toBeInTheDocument();
-      
-      // 2. Hold (3s)
       act(() => {
         vi.advanceTimersByTime(3000);
       });
       expect(screen.getByText(/Expire lentamente em 3 segundos/i)).toBeInTheDocument();
-      
-      // 3. Exhale (3s)
       act(() => {
         vi.advanceTimersByTime(3000);
       });
-      // Back to Inhale
       expect(screen.getByText(/Inspire contando até 4/i)).toBeInTheDocument();
     });
   });

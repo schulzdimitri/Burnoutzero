@@ -45,6 +45,9 @@ export default function Login() {
       const userResponse = await api.get('/users/me/');
       const userData = userResponse.data;
       
+      // Store role for route protection
+      localStorage.setItem('user_role', userData.role);
+      
       if (userData.role === 'psicologo') {
         navigate('/psicologo');
       } else if (userData.role === 'gestor') {
