@@ -8,22 +8,22 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import api from '../services/api';
 
-interface Paciente {
+interface Patient {
   id: number;
-  funcionario: { username: string };
-  data: string;
+  employee: { username: string };
+  date: string;
   status: string;
 }
 
 interface Insight {
   id: number;
-  texto: string;
-  recomendacoes: string;
-  gerado_em: string;
+  text: string;
+  recommendations: string;
+  generated_at: string;
 }
 
-export default function Psicologo() {
-  const [pacientes, setPacientes] = useState<Paciente[]>([]);
+export default function Psychologist() {
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [insightsData, setInsightsData] = useState<Insight[]>([]);
   const [openValidar, setOpenValidar] = useState(false);
   const [selectedInsight, setSelectedInsight] = useState<Insight | null>(null);
@@ -31,10 +31,10 @@ export default function Psicologo() {
   const fetchData = async () => {
     try {
       const [acRes, inRes] = await Promise.all([
-        api.get('/acompanhamentos/'),
+        api.get('/follow-ups/'),
         api.get('/insights/')
       ]);
-      setPacientes(acRes.data);
+      setPatients(acRes.data);
       setInsightsData(inRes.data);
     } catch (err) {
       console.error(err);
@@ -59,8 +59,8 @@ export default function Psicologo() {
     if (!selectedInsight) return;
     try {
       await api.patch(`/insights/${selectedInsight.id}/validar/`, {
-        texto: selectedInsight.texto,
-        recomendacoes: selectedInsight.recomendacoes
+        texto: selectedInsight.text,
+        recomendacoes: selectedInsight.recommendations
       });
       setOpenValidar(false);
       void fetchData();
@@ -125,14 +125,14 @@ export default function Psicologo() {
               <Typography variant="h6">Meus Pacientes</Typography>
             </Box>
             <List>
-              {pacientes.map((paciente: Paciente, index: number) => (
+              {patients.map((paciente: Patient, index: number) => (
                 <ListItem key={index} divider>
                   <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
-                    {paciente.funcionario?.username?.[0] || 'P'}
+                    {paciente.employee?.username?.[0] || 'P'}
                   </Avatar>
                   <ListItemText 
-                    primary={paciente.funcionario?.username || 'Paciente'}
-                    secondary={`Início: ${new Date(paciente.data).toLocaleDateString()}`}
+                    primary={paciente.employee?.username || 'Paciente'}
+                    secondary={`Início: ${new Date(paciente.date).toLocaleDateString()}`}
                   />
                   <Chip 
                     label={paciente.status}
@@ -154,8 +154,8 @@ export default function Psicologo() {
               <Card key={index} sx={{ mb: 2, bgcolor: 'info.light', color: 'white' }}>
                 <CardContent>
                   <Typography variant="subtitle2">Insight Automático</Typography>
-                  <Typography variant="body2" sx={{ my: 1 }}>{insight.texto}</Typography>
-                  <Typography variant="caption" display="block">{new Date(insight.gerado_em).toLocaleDateString()}</Typography>
+                  <Typography variant="body2" sx={{ my: 1 }}>{insight.text}</Typography>
+                  <Typography variant="caption" display="block">{new Date(insight.generated_at).toLocaleDateString()}</Typography>
                   <Button size="small" variant="contained" sx={{ mt: 1 }} onClick={() => handleValidarClick(insight)}>
                     Analisar / Validar
                   </Button>
@@ -176,8 +176,8 @@ export default function Psicologo() {
             rows={3}
             fullWidth
             margin="normal"
-            value={selectedInsight?.texto || ''}
-            onChange={(e) => selectedInsight && setSelectedInsight({ ...selectedInsight, texto: e.target.value })}
+            value={selectedInsight?.text || ''}
+            onChange={(e) => selectedInsight && setSelectedInsight({ ...selectedInsight, text: e.target.value })}
           />
           <TextField
             label="Recomendações"
@@ -185,8 +185,8 @@ export default function Psicologo() {
             rows={3}
             fullWidth
             margin="normal"
-            value={selectedInsight?.recomendacoes || ''}
-            onChange={(e) => selectedInsight && setSelectedInsight({ ...selectedInsight, recomendacoes: e.target.value })}
+            value={selectedInsight?.recommendations || ''}
+            onChange={(e) => selectedInsight && setSelectedInsight({ ...selectedInsight, recommendations: e.target.value })}
           />
         </DialogContent>
 

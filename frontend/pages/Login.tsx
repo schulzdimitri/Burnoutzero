@@ -45,15 +45,12 @@ export default function Login() {
       const userResponse = await api.get('/users/me/');
       const userData = userResponse.data;
       
-      // Store role for route protection
-      localStorage.setItem('user_role', userData.role);
-      
-      if (userData.role === 'psicologo') {
-        navigate('/psicologo');
-      } else if (userData.role === 'gestor') {
-        navigate('/gestor');
+      if (userData.role === 'psychologist') {
+        navigate('/psychologist');
+      } else if (userData.role === 'manager') {
+        navigate('/manager');
       } else {
-        navigate('/funcionario');
+        navigate('/employee');
       }
     } catch (err) {
       const axiosError = err as { response?: { status: number } };
@@ -158,7 +155,7 @@ export default function Login() {
               <Link
                 component="button"
                 variant="body2"
-                onClick={() => navigate('/cadastro')}
+                onClick={() => navigate('/register')}
                 underline="hover"
               >
                 Não tem uma conta? Cadastre-se

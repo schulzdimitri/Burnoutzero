@@ -4,87 +4,87 @@ from django.contrib.auth.models import AbstractUser
 
 class User(AbstractUser):
     ROLE_CHOICES = (
-        ('funcionario', 'Funcionário'),
-        ('psicologo', 'Psicólogo'),
-        ('gestor', 'Gestor'),
+        ('employee', 'Employee'),
+        ('psychologist', 'Psychologist'),
+        ('manager', 'Manager'),
     )
     role = models.CharField(
-        max_length=20, choices=ROLE_CHOICES, default='funcionario'
+        max_length=20, choices=ROLE_CHOICES, default='employee'
     )
-    departamento = models.CharField(
+    department = models.CharField(
         max_length=100, blank=True, null=True
     )
 
 
-class Avaliacao(models.Model):
-    funcionario = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='avaliacoes'
+class Assessment(models.Model):
+    employee = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='assessments'
     )
-    data_avaliacao = models.DateTimeField(auto_now_add=True)
+    assessment_date = models.DateTimeField(auto_now_add=True)
 
-    estresse = models.IntegerField(default=0)
-    ansiedade = models.IntegerField(default=0)
+    stress = models.IntegerField(default=0)
+    anxiety = models.IntegerField(default=0)
     burnout = models.IntegerField(default=0)
-    depressao = models.IntegerField(default=0)
+    depression = models.IntegerField(default=0)
 
     RISK_CHOICES = (
-        ('baixo', 'Baixo'),
-        ('medio', 'Médio'),
-        ('alto', 'Alto'),
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
     )
-    nivel_risco = models.CharField(max_length=20, choices=RISK_CHOICES)
+    risk_level = models.CharField(max_length=20, choices=RISK_CHOICES)
 
 
-class Acompanhamento(models.Model):
-    psicologo = models.ForeignKey(
+class FollowUp(models.Model):
+    psychologist = models.ForeignKey(
         User, on_delete=models.CASCADE,
-        related_name='acompanhamentos_dados'
+        related_name='given_follow_ups'
     )
-    funcionario = models.ForeignKey(
+    employee = models.ForeignKey(
         User, on_delete=models.CASCADE,
-        related_name='acompanhamentos_recebidos'
+        related_name='received_follow_ups'
     )
-    data = models.DateTimeField(auto_now_add=True)
-    anotacoes_privadas = models.TextField()
-    status = models.CharField(max_length=50, default='ativo')
+    date = models.DateTimeField(auto_now_add=True)
+    private_notes = models.TextField()
+    status = models.CharField(max_length=50, default='active')
 
 
-class Agendamento(models.Model):
-    funcionario = models.ForeignKey(
+class Appointment(models.Model):
+    employee = models.ForeignKey(
         User, on_delete=models.CASCADE,
-        related_name='agendamentos'
+        related_name='appointments'
     )
-    nome_psicologo = models.CharField(max_length=100)
-    data_hora = models.CharField(max_length=50)
-    status = models.CharField(max_length=20, default='agendado')
-    criado_em = models.DateTimeField(auto_now_add=True)
+    psychologist_name = models.CharField(max_length=100)
+    date_time = models.CharField(max_length=50)
+    status = models.CharField(max_length=20, default='scheduled')
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class Insight(models.Model):
-    funcionario = models.ForeignKey(
+    employee = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='insights'
     )
-    avaliacao = models.ForeignKey(
-        Avaliacao, on_delete=models.CASCADE, related_name='insights'
+    assessment = models.ForeignKey(
+        Assessment, on_delete=models.CASCADE, related_name='insights'
     )
-    texto = models.TextField()
-    recomendacoes = models.TextField()
-    gerado_em = models.DateTimeField(auto_now_add=True)
-    validado_por = models.ForeignKey(
+    text = models.TextField()
+    recommendations = models.TextField()
+    generated_at = models.DateTimeField(auto_now_add=True)
+    validated_by = models.ForeignKey(
         User, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='insights_validados'
+        on_delete=models.SET_NULL, related_name='validated_insights'
     )
-    validado_em = models.DateTimeField(null=True, blank=True)
+    validated_at = models.DateTimeField(null=True, blank=True)
 
 
-class PontosGamificacao(models.Model):
-    MOTIVO_CHOICES = (
-        ('avaliacao_completa', 'Avaliação Completa'),
-        ('bonus_sequencia', 'Bônus de Sequência'),
+class GamificationPoints(models.Model):
+    REASON_CHOICES = (
+        ('assessment_complete', 'Assessment Complete'),
+        ('streak_bonus', 'Streak Bonus'),
     )
-    funcionario = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='pontos'
+    employee = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='points'
     )
-    pontos = models.IntegerField(default=0)
-    motivo = models.CharField(max_length=50, choices=MOTIVO_CHOICES)
-    conquistado_em = models.DateTimeField(auto_now_add=True)
+    points = models.IntegerField(default=0)
+    reason = models.CharField(max_length=50, choices=REASON_CHOICES)
+    earned_at = models.DateTimeField(auto_now_add=True)

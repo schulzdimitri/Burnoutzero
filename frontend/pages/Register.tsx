@@ -31,7 +31,7 @@ import BadgeIcon from '@mui/icons-material/Badge';
 
 const steps = ['Dados pessoais', 'Perfil de acesso', 'Termos e LGPD'];
 
-export default function Cadastro() {
+export default function Register() {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
@@ -290,17 +290,17 @@ export default function Cadastro() {
                   sx={{ mt: 2 }}
                 >
                   <FormControlLabel
-                    value="funcionario"
+                    value="employee"
                     control={<Radio />}
                     label="Funcionário - Acesso a questionários e chat de acolhimento"
                   />
                   <FormControlLabel
-                    value="psicologo"
+                    value="psychologist"
                     control={<Radio />}
                     label="Psicólogo - Acesso a dashboard de pacientes e insights"
                   />
                   <FormControlLabel
-                    value="gestor"
+                    value="manager"
                     control={<Radio />}
                     label="Gestor - Acesso a dashboards gerenciais e relatórios"
                   />
